@@ -48,6 +48,27 @@ jest.mock('expo-crypto', () => ({
   getRandomBytes: (n) => new Uint8Array(require('crypto').randomBytes(n)),
 }));
 
+// Sistema de archivos en memoria: global.archivos guarda las rutas que existen
+jest.mock('expo-file-system', () => {
+  global.archivos = new Set();
+  const unir = (base, nombre) => `${String(base).replace(/\/$/, '')}/${nombre}`;
+  class Directory {
+    constructor(base, nombre) { this.uri = nombre ? unir(base.uri ?? base, nombre) : String(base); }
+    get exists() { return true; }
+    create() {}
+  }
+  class File {
+    constructor(base, nombre) { this.uri = nombre ? unir(base.uri ?? base, nombre) : String(base); }
+    get exists() { return global.archivos.has(this.uri); }
+    copy(destino) {
+      if (!this.exists) throw new Error(`No existe ${this.uri}`);
+      global.archivos.add(destino.uri);
+    }
+    delete() { global.archivos.delete(this.uri); }
+  }
+  return { File, Directory, Paths: { document: new Directory('file:///documentos') } };
+});
+
 // Conexión controlada desde cada prueba con global.conectado
 jest.mock('@react-native-community/netinfo', () => ({
   fetch: async () => ({ isConnected: global.conectado, isInternetReachable: global.conectado }),

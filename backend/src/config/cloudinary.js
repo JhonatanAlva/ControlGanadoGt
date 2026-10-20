@@ -6,6 +6,9 @@
 
 const cloudinarySDK = require("cloudinary").v2;
 const env = require("./env");
+const AppError = require("../utils/AppError");
+
+const configurado = Boolean(env.cloudinary.cloudName && env.cloudinary.apiKey && env.cloudinary.apiSecret);
 
 cloudinarySDK.config({
   cloud_name: env.cloudinary.cloudName,
@@ -22,6 +25,13 @@ cloudinarySDK.config({
  * @returns {Promise<string>}   - URL segura de la imagen subida
  */
 const upload = (buffer, { folder, public_id }) => {
+  // Mensaje claro en lugar de un 500 genérico ("cloud_name is disabled")
+  if (!configurado) {
+    return Promise.reject(new AppError(
+      "No se pueden subir fotos: falta configurar Cloudinary en el servidor.",
+      503,
+    ));
+  }
   return new Promise((resolve, reject) => {
     const stream = cloudinarySDK.uploader.upload_stream(
       {

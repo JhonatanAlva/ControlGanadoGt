@@ -5,6 +5,7 @@
 import NetInfo from '@react-native-community/netinfo';
 import { getDb } from '../db/database';
 import { encolarMutacion, registrarEjecutor, remapearId, descartarMutacionesDe } from './syncManager';
+import { guardarFotoPendiente, borrarFotoPendiente } from './fotosPendientes';
 import useAuthStore from '../stores/authStore';
 
 export const estaConectado = async () => {
@@ -32,6 +33,7 @@ const sinFiltros = (filtros) => Object.keys(filtros).every((k) => PARAMS_PAGINAC
  * @param {object}   cfg
  * @param {string}   cfg.entidad      - nombre en la tabla registros y en la cola ('vacunas'...)
  * @param {object}   cfg.service      - servicio HTTP con listar/obtener/crear/actualizar/eliminar
+ *                                      (crear y actualizar reciben una foto opcional al final)
  * @param {string}   cfg.clave        - clave del objeto en las respuestas (res.data.data[clave])
  * @param {Function} [cfg.extraerLista] - (res) => array del listado
  * @param {Function} [cfg.completar]  - async (items) => items con campos calculados localmente
@@ -170,36 +172,45 @@ export const crearRepoOffline = ({
     return enLocal();
   };
 
-  const crear = (datos) => escribir(
+  // Sin señal, la foto se copia a almacenamiento permanente y se muestra desde ahí
+  // hasta que el servidor devuelva su URL definitiva
+  const crear = (datos, foto) => escribir(
     null,
     async () => {
-      const res = await service.crear(datos);
+      const res = await service.crear(datos, foto);
       const item = res.data.data[clave];
       await guardarUno(item, 0);
       return item;
     },
     async () => {
       const id = nuevoIdLocal();
-      const item = { id, ...datos, creado_en: ahora(), actualizado_en: ahora() };
+      const fotoGuardada = guardarFotoPendiente(foto);
+      const item = {
+        id, ...datos, ...(fotoGuardada && { foto_url: fotoGuardada.uri }), creado_en: ahora(), actualizado_en: ahora(),
+      };
       await guardarUno(item, 1);
-      await encolarMutacion({ entidad, accion: 'crear', entidadLocalId: id, payload: { datos } });
+      await encolarMutacion({ entidad, accion: 'crear', entidadLocalId: id, payload: { datos, foto: fotoGuardada } });
       return { ...(await completar([item]))[0], _local: true };
     },
   );
 
-  const actualizar = (id, datos) => escribir(
+  const actualizar = (id, datos, foto) => escribir(
     id,
     async () => {
-      const res = await service.actualizar(id, datos);
+      const res = await service.actualizar(id, datos, foto);
       const item = res.data.data[clave];
       await guardarUno(item, 0);
       return item;
     },
     async () => {
       const fila = await leerFila(id);
-      const item = { ...(fila ? JSON.parse(fila.datos) : { id }), ...datos, actualizado_en: ahora() };
+      const fotoGuardada = guardarFotoPendiente(foto);
+      const item = {
+        ...(fila ? JSON.parse(fila.datos) : { id }), ...datos,
+        ...(fotoGuardada && { foto_url: fotoGuardada.uri }), actualizado_en: ahora(),
+      };
       await guardarUno(item, 1);
-      await encolarMutacion({ entidad, accion: 'actualizar', entidadLocalId: id, payload: { datos } });
+      await encolarMutacion({ entidad, accion: 'actualizar', entidadLocalId: id, payload: { datos, foto: fotoGuardada } });
       return { ...item, _local: true };
     },
   );
@@ -252,16 +263,18 @@ export const crearRepoOffline = ({
   };
 
   // ── Envío de la cola al servidor ───────────────────────────────────────────
-  registrarEjecutor(entidad, async (mut, { datos }) => {
+  registrarEjecutor(entidad, async (mut, { datos, foto }) => {
     const id = mut.entidad_local_id;
     if (mut.accion === 'crear') {
-      const res = await service.crear(datos);
+      const res = await service.crear(datos, foto);
+      borrarFotoPendiente(foto);
       const idReal = res.data.data[clave].id;
       await remapearId(entidad, id, idReal);
       return idReal;
     }
     if (mut.accion === 'actualizar') {
-      await service.actualizar(id, datos);
+      await service.actualizar(id, datos, foto);
+      borrarFotoPendiente(foto);
     } else if (mut.accion === 'eliminar') {
       try {
         await service.eliminar(id);

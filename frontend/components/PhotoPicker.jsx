@@ -1,10 +1,10 @@
 // components/PhotoPicker.jsx
-// Selector de foto para el animal — permite tomar una foto o elegirla de la galería.
+// Selector de foto (animales, publicaciones) — permite tomar una foto o elegirla de la galería.
 import { View, Image, TouchableOpacity, Text, Alert, StyleSheet } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS } from '../constants/colors';
 
-export default function PhotoPicker({ asset, existingUrl, onChange }) {
+export default function PhotoPicker({ asset, existingUrl, onChange, titulo = 'Foto del animal' }) {
   const uri = asset?.uri || existingUrl;
 
   const pedirPermiso = async (esCamara) => {
@@ -31,7 +31,7 @@ export default function PhotoPicker({ asset, existingUrl, onChange }) {
   };
 
   const elegir = () => {
-    Alert.alert('Foto del animal', '¿Cómo quieres agregarla?', [
+    Alert.alert(titulo, '¿Cómo quieres agregarla?', [
       { text: 'Tomar foto', onPress: tomarFoto },
       { text: 'Elegir de galería', onPress: elegirGaleria },
       { text: 'Cancelar', style: 'cancel' },

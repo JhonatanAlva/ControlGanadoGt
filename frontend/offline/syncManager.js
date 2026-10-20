@@ -8,6 +8,7 @@ import { getDb } from '../db/database';
 import { animalesService } from '../services/animalesService';
 import useAuthStore from '../stores/authStore';
 import useFincaStore from '../stores/fincaStore';
+import { borrarFotoPendiente } from './fotosPendientes';
 
 let sincronizando = false;
 const listeners = new Set();
@@ -40,6 +41,18 @@ export const contarPendientes = async () => {
   return row?.total || 0;
 };
 
+// Primer cambio en cola que ya falló (error de red o del servidor): es el que detiene la cola
+export const errorPendiente = async () => {
+  const db = await getDb();
+  const row = await db.getFirstAsync(
+    `SELECT error FROM pending_mutations
+     WHERE usuario_id = ? AND rechazada = 0 AND intentos > 0
+     ORDER BY creado_en ASC LIMIT 1`,
+    [usuarioIdActual()],
+  );
+  return row?.error || null;
+};
+
 export const listarRechazadas = async () => {
   const db = await getDb();
   return db.getAllAsync(
@@ -48,9 +61,13 @@ export const listarRechazadas = async () => {
   );
 };
 
+const borrarFotosDe = (mutaciones) =>
+  mutaciones.forEach((m) => borrarFotoPendiente(JSON.parse(m.payload || '{}').foto));
+
 // Quita de la cola los cambios de un registro que nunca llegó al servidor
 export const descartarMutacionesDe = async (entidadLocalId) => {
   const db = await getDb();
+  borrarFotosDe(await db.getAllAsync('SELECT payload FROM pending_mutations WHERE entidad_local_id = ?', [entidadLocalId]));
   await db.runAsync('DELETE FROM pending_mutations WHERE entidad_local_id = ?', [entidadLocalId]);
   notificar({ tipo: 'encolado' });
 };
@@ -60,6 +77,7 @@ export const descartarMutacionesDe = async (entidadLocalId) => {
 export const descartarRechazadas = async () => {
   const db = await getDb();
   const rechazadas = await listarRechazadas();
+  borrarFotosDe(rechazadas);
   await db.withTransactionAsync(async () => {
     for (const m of rechazadas) {
       const tabla = m.entidad === 'animales' ? 'animales' : 'registros';
@@ -107,6 +125,9 @@ export const remapearId = async (entidad, idLocal, idReal) => {
       }
     }
 
+    // Filas cuya clave es el id de otro registro (p. ej. historial de pesos de un animal)
+    await db.runAsync('UPDATE OR REPLACE registros SET id = ? WHERE id = ?', [idReal, idLocal]);
+
     await db.runAsync(
       'UPDATE pending_mutations SET entidad_local_id = ? WHERE entidad_local_id = ?',
       [idReal, idLocal],
@@ -147,12 +168,14 @@ const marcarSincronizado = async (id) => {
 const ejecutarAnimal = async (mut, payload) => {
   if (mut.accion === 'crear') {
     const res = await animalesService.crear(payload.datos, payload.foto);
+    borrarFotoPendiente(payload.foto);
     const idReal = res.data.data.animal.id;
     await remapearId('animales', mut.entidad_local_id, idReal);
     return idReal;
   }
   if (mut.accion === 'actualizar') {
     await animalesService.actualizar(mut.entidad_local_id, payload.datos, payload.foto);
+    borrarFotoPendiente(payload.foto);
   } else if (mut.accion === 'cambiarEstado') {
     await animalesService.cambiarEstado(mut.entidad_local_id, payload.datos);
   } else if (mut.accion === 'registrarPeso') {

@@ -1,17 +1,20 @@
 // app/(app)/comunidad/index.jsx
 import { useState, useCallback } from 'react';
 import {
-  View, Text, ScrollView, RefreshControl,
-  TouchableOpacity, ActivityIndicator, StyleSheet,
+  View, Text, ScrollView, RefreshControl, Image,
+  TouchableOpacity, ActivityIndicator, Alert, StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { comunidadService } from '../../../services/comunidadService';
+import { comunidadRepo } from '../../../offline/comunidadRepo';
+import { esIdLocal } from '../../../offline/crearRepoOffline';
 import { COLORS } from '../../../constants/colors';
 import { formatQ } from '../../../utils/format';
 import { TIPOS_POST, REGIONES_GUATEMALA } from '../../../constants/enums';
 import ScreenHeader from '../../../components/ScreenHeader';
 import ChipPicker from '../../../components/ChipPicker';
+import SyncBanner from '../../../components/SyncBanner';
 
 export default function ComunidadScreen() {
   const router = useRouter();
@@ -21,12 +24,11 @@ export default function ComunidadScreen() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['comunidad', { tipo, region }],
-    queryFn: () => comunidadService.listar({
+    queryFn: () => comunidadRepo.listar({
       ...(tipo && { tipo }),
       ...(region && { region }),
       limit: 50,
     }),
-    select: (res) => res.data.data,
   });
 
   const [refreshing, setRefreshing] = useState(false);
@@ -36,10 +38,20 @@ export default function ComunidadScreen() {
     setRefreshing(false);
   }, [queryClient]);
 
+  // Los "me gusta" necesitan señal (cuentan en el servidor al instante)
   const likeMutation = useMutation({
     mutationFn: (id) => comunidadService.toggleLike(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['comunidad'] }),
+    onError: (err) => Alert.alert('Me gusta', err.mensaje || 'No se pudo registrar el me gusta.'),
   });
+
+  const darLike = (post) => {
+    if (esIdLocal(post.id)) {
+      Alert.alert('Me gusta', 'Esta publicación aún no se envía al servidor.');
+      return;
+    }
+    likeMutation.mutate(post.id);
+  };
 
   const posts = data || [];
 
@@ -50,6 +62,7 @@ export default function ComunidadScreen() {
         rightLabel="+ Nueva"
         onRightPress={() => router.push('/(app)/comunidad/nueva')}
       />
+      <SyncBanner />
 
       <View style={styles.filtros}>
         <ChipPicker options={TIPOS_POST} value={tipo} onChange={setTipo} />
@@ -76,15 +89,16 @@ export default function ComunidadScreen() {
               <Text style={styles.tipo}>{p.tipo}</Text>
               <Text style={styles.region}>{p.region}</Text>
             </View>
+            {!!p.foto_url && <Image source={{ uri: p.foto_url }} style={styles.foto} />}
             <Text style={styles.titulo}>{p.titulo}</Text>
             <Text style={styles.contenido} numberOfLines={2}>{p.contenido}</Text>
-            {p.precio && <Text style={styles.precio}>{formatQ(p.precio)}</Text>}
+            {!!p.precio && <Text style={styles.precio}>{formatQ(p.precio)}</Text>}
 
             <View style={styles.rowBetween}>
               <Text style={styles.autor}>{p.autor_nombre}</Text>
               <TouchableOpacity
                 style={styles.likeBtn}
-                onPress={() => likeMutation.mutate(p.id)}
+                onPress={() => darLike(p)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Text style={[styles.likeIcon, p.yo_di_like && { color: COLORS.danger }]}>
@@ -120,6 +134,7 @@ const styles = StyleSheet.create({
   tipo: { fontSize: 11, fontWeight: '700', color: COLORS.primary, textTransform: 'uppercase' },
   region: { fontSize: 11, color: COLORS.gray500 },
   titulo: { fontSize: 16, fontWeight: 'bold', color: COLORS.black, marginTop: 6 },
+  foto: { width: '100%', height: 180, borderRadius: 10, marginTop: 10, backgroundColor: COLORS.gray100 },
   contenido: { fontSize: 13, color: COLORS.gray600, marginTop: 4 },
   precio: { fontSize: 14, fontWeight: 'bold', color: COLORS.success, marginTop: 6 },
   autor: { fontSize: 12, color: COLORS.gray500, marginTop: 10 },

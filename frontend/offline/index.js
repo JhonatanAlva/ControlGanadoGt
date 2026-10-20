@@ -6,3 +6,4 @@ import './vacunasRepo';
 import './partosRepo';
 import './gastosRepo';
 import './fincasRepo';
+import './comunidadRepo';

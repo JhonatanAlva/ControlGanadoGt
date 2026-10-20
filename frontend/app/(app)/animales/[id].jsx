@@ -6,7 +6,6 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { animalesService } from '../../../services/animalesService';
 import * as animalesRepo from '../../../offline/animalesRepo';
 import { COLORS } from '../../../constants/colors';
 import { formatQ, formatFecha } from '../../../utils/format';
@@ -28,8 +27,6 @@ export default function DetalleAnimalScreen() {
   const { id } = useLocalSearchParams();
   const queryClient = useQueryClient();
 
-  const esLocal = id.startsWith('local_');
-
   const { data: animal, isLoading } = useQuery({
     queryKey: ['animales', id],
     queryFn: () => animalesRepo.obtener(id),
@@ -37,9 +34,7 @@ export default function DetalleAnimalScreen() {
 
   const { data: pesos } = useQuery({
     queryKey: ['animales', id, 'pesos'],
-    queryFn: () => animalesService.historialPesos(id),
-    select: (res) => res.data.data.pesos,
-    enabled: !esLocal,
+    queryFn: () => animalesRepo.historialPesos(id),
   });
 
   const invalidarTodo = async () => {
@@ -228,13 +223,9 @@ export default function DetalleAnimalScreen() {
         </View>
         <PrimaryButton label="Registrar peso" loading={pesoMutation.isPending} onPress={handleRegistrarPeso} />
 
-        {esLocal ? (
-          <Text style={styles.emptyText}>
-            Este animal aún no se sincroniza con el servidor — el historial de pesos estará disponible después.
-          </Text>
-        ) : pesos?.length > 0 ? pesos.map((p) => (
+        {pesos?.length > 0 ? pesos.map((p) => (
           <View key={p.id} style={styles.pesoRow}>
-            <Text style={styles.pesoValue}>{p.peso} lb</Text>
+            <Text style={styles.pesoValue}>{p.peso} lb{p._local ? ' ⏳' : ''}</Text>
             <Text style={styles.sub}>{formatFecha(p.fecha)}</Text>
             {p.gdp != null && (
               <Text style={[styles.sub, { color: p.gdp >= 0 ? COLORS.success : COLORS.danger }]}>

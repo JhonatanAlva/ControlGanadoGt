@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import useNetworkStatus from '../hooks/useNetworkStatus';
 import {
-  contarPendientes, listarRechazadas, descartarRechazadas, suscribirseASync,
+  contarPendientes, listarRechazadas, descartarRechazadas, suscribirseASync, errorPendiente,
 } from '../offline/syncManager';
 import { COLORS } from '../constants/colors';
 
@@ -16,12 +16,14 @@ export default function SyncBanner() {
   const conectado = useNetworkStatus();
   const [pendientes, setPendientes] = useState(0);
   const [rechazadas, setRechazadas] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const cargar = async () => {
       try {
         setPendientes(await contarPendientes());
         setRechazadas(await listarRechazadas());
+        setError(await errorPendiente());
       } catch {
         // Base local no disponible: el aviso simplemente no se muestra
       }
@@ -57,7 +59,11 @@ export default function SyncBanner() {
       {conectado && pendientes > 0 && (
         <View style={styles.sync}>
           <ActivityIndicator size="small" color={COLORS.secondary} />
-          <Text style={styles.syncText}>Sincronizando {pendientes} cambio(s)...</Text>
+          <Text style={styles.syncText}>
+            {error
+              ? `${pendientes} cambio(s) esperando: ${error} Se reintentará.`
+              : `Sincronizando ${pendientes} cambio(s)...`}
+          </Text>
         </View>
       )}
       {rechazadas.length > 0 && (
@@ -78,7 +84,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: COLORS.primaryLight, paddingVertical: 8, paddingHorizontal: 16,
   },
-  syncText: { color: COLORS.primaryDark, fontSize: 12 },
+  syncText: { color: COLORS.primaryDark, fontSize: 12, flexShrink: 1 },
   rechazo: { backgroundColor: '#fdecea', paddingHorizontal: 16, paddingVertical: 8 },
   rechazoText: { color: COLORS.danger, fontSize: 12, textAlign: 'center', fontWeight: '600' },
 });

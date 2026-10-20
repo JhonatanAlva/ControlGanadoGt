@@ -5,6 +5,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { getDb } from '../db/database';
 import { animalesService } from '../services/animalesService';
 import { encolarMutacion } from './syncManager';
+import { guardarFotoPendiente } from './fotosPendientes';
 import useAuthStore from '../stores/authStore';
 
 const estaConectado = async () => {
@@ -111,15 +112,17 @@ export const crear = async (datos, foto) => {
   }
 
   const idLocal = `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const fotoGuardada = guardarFotoPendiente(foto);
   const animalLocal = {
     id: idLocal,
     ...datos,
+    ...(fotoGuardada && { foto_url: fotoGuardada.uri }),
     estado: datos.estado || 'Activo',
     creado_en: new Date().toISOString(),
     actualizado_en: new Date().toISOString(),
   };
   await guardarLocalUno(animalLocal, 1);
-  await encolarMutacion({ entidad: 'animales', accion: 'crear', entidadLocalId: idLocal, payload: { datos, foto } });
+  await encolarMutacion({ entidad: 'animales', accion: 'crear', entidadLocalId: idLocal, payload: { datos, foto: fotoGuardada } });
   return animalLocal;
 };
 
@@ -135,9 +138,12 @@ export const actualizar = async (id, datos, foto) => {
   const db = await getDb();
   const row = await db.getFirstAsync('SELECT datos FROM animales WHERE id = ?', [id]);
   const actual = row ? JSON.parse(row.datos) : { id };
-  const actualizado = { ...actual, ...datos, actualizado_en: new Date().toISOString() };
+  const fotoGuardada = guardarFotoPendiente(foto);
+  const actualizado = {
+    ...actual, ...datos, ...(fotoGuardada && { foto_url: fotoGuardada.uri }), actualizado_en: new Date().toISOString(),
+  };
   await guardarLocalUno(actualizado, 1);
-  await encolarMutacion({ entidad: 'animales', accion: 'actualizar', entidadLocalId: id, payload: { datos, foto } });
+  await encolarMutacion({ entidad: 'animales', accion: 'actualizar', entidadLocalId: id, payload: { datos, foto: fotoGuardada } });
   return actualizado;
 };
 
@@ -159,6 +165,55 @@ export const cambiarEstado = async (id, datos) => {
   return actualizado;
 };
 
+// ── Historial de pesos (caché en registros: entidad 'pesos', id = id del animal) ──
+const leerPesosLocales = async (animalId) => {
+  const db = await getDb();
+  const row = await db.getFirstAsync(
+    "SELECT datos FROM registros WHERE entidad = 'pesos' AND id = ?",
+    [animalId],
+  );
+  return row ? JSON.parse(row.datos) : [];
+};
+
+const guardarPesosLocales = async (animalId, pesos) => {
+  const db = await getDb();
+  await db.runAsync(
+    `INSERT OR REPLACE INTO registros (entidad, id, usuario_id, datos, pendiente_sync, eliminado, actualizado_en)
+     VALUES ('pesos', ?, ?, ?, 0, 0, ?)`,
+    [animalId, usuarioIdActual(), JSON.stringify(pesos), new Date().toISOString()],
+  );
+};
+
+const hayPesosEnCola = async (animalId) => {
+  const db = await getDb();
+  const row = await db.getFirstAsync(
+    `SELECT COUNT(*) AS total FROM pending_mutations
+     WHERE entidad = 'animales' AND accion = 'registrarPeso' AND entidad_local_id = ? AND rechazada = 0`,
+    [animalId],
+  );
+  return (row?.total || 0) > 0;
+};
+
+const porFechaDesc = (a, b) => String(b.fecha).slice(0, 10).localeCompare(String(a.fecha).slice(0, 10));
+
+export const historialPesos = async (id) => {
+  if (!id.startsWith('local_') && (await estaConectado())) {
+    try {
+      const res = await animalesService.historialPesos(id);
+      // Los pesajes hechos sin señal se siguen mostrando mientras estén en la cola
+      const locales = (await hayPesosEnCola(id))
+        ? (await leerPesosLocales(id)).filter((p) => p._local)
+        : [];
+      const pesos = [...locales, ...res.data.data.pesos].sort(porFechaDesc);
+      await guardarPesosLocales(id, pesos);
+      return pesos;
+    } catch {
+      // cae a caché local
+    }
+  }
+  return leerPesosLocales(id);
+};
+
 export const registrarPeso = async (id, datos) => {
   const esLocal = id.startsWith('local_');
   if (!esLocal && (await estaConectado())) {
@@ -176,5 +231,9 @@ export const registrarPeso = async (id, datos) => {
   const actualizado = { ...actual, peso_actual: datos.peso, actualizado_en: new Date().toISOString() };
   await guardarLocalUno(actualizado, 1);
   await encolarMutacion({ entidad: 'animales', accion: 'registrarPeso', entidadLocalId: id, payload: { datos } });
-  return { ...datos, id: `local_peso_${Date.now()}`, pendienteSync: true };
+
+  // Visible en el historial al instante; la ganancia diaria la calcula el servidor al sincronizar
+  const peso = { ...datos, id: `local_peso_${Date.now()}`, gdp: null, _local: true };
+  await guardarPesosLocales(id, [peso, ...(await leerPesosLocales(id))].sort(porFechaDesc));
+  return peso;
 };
