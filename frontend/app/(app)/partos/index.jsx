@@ -10,6 +10,8 @@ import { partosService } from '../../../services/partosService';
 import { COLORS } from '../../../constants/colors';
 import { formatFecha } from '../../../utils/format';
 import ScreenHeader from '../../../components/ScreenHeader';
+import useFincaStore from '../../../stores/fincaStore';
+import FincaActivaBar from '../../../components/FincaActivaBar';
 import Badge from '../../../components/Badge';
 
 const ESTADO_COLOR = {
@@ -24,11 +26,13 @@ export default function PartosScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [soloProximos, setSoloProximos] = useState(false);
+  const fincaActivaId = useFincaStore((s) => s.fincaActivaId);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['partos', { soloProximos }],
+    queryKey: ['partos', { soloProximos, fincaActivaId }],
     queryFn: () => partosService.listar({
       ...(soloProximos && { proximos: 'true' }),
+      ...(fincaActivaId && { finca_id: fincaActivaId }),
       limit: 100,
     }),
     select: (res) => res.data.data,
@@ -50,6 +54,7 @@ export default function PartosScreen() {
         rightLabel="+ Nuevo"
         onRightPress={() => router.push('/(app)/partos/nuevo')}
       />
+      <FincaActivaBar />
 
       <View style={styles.filtros}>
         <TouchableOpacity

@@ -52,6 +52,12 @@ export default function FincasScreen() {
           <Text style={styles.errorText}>No se pudieron cargar las fincas. Desliza para reintentar.</Text>
         )}
 
+        {fincas.length > 1 && (
+          <Text style={styles.ayuda}>
+            Toca una finca para ver solo sus datos en toda la app. Tócala de nuevo para ver todas.
+          </Text>
+        )}
+
         {!isLoading && fincas.length === 0 && (
           <Text style={styles.emptyText}>
             Todavía no tienes fincas registradas. Crea la primera con "+ Nueva".
@@ -64,7 +70,7 @@ export default function FincasScreen() {
             <TouchableOpacity
               key={finca.id}
               style={[styles.card, activa && styles.cardActiva]}
-              onPress={() => setFincaActiva(finca.id)}
+              onPress={() => setFincaActiva(activa ? null : finca.id)}
               onLongPress={() => router.push(`/(app)/fincas/${finca.id}`)}
             >
               <View style={{ flex: 1 }}>
@@ -96,6 +102,7 @@ export default function FincasScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.gray50 },
+  ayuda: { fontSize: 13, color: COLORS.gray500, marginHorizontal: 20, marginTop: 16 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

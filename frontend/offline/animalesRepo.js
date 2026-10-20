@@ -51,6 +51,7 @@ const leerLocal = async (filtros = {}) => {
 
   if (filtros.estado) animales = animales.filter((a) => a.estado === filtros.estado);
   if (filtros.sexo) animales = animales.filter((a) => a.sexo === filtros.sexo);
+  if (filtros.finca_id) animales = animales.filter((a) => a.finca_id === filtros.finca_id);
   if (filtros.search) {
     const q = filtros.search.toLowerCase();
     animales = animales.filter((a) =>

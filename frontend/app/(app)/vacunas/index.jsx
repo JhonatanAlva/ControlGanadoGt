@@ -10,6 +10,8 @@ import { vacunasService } from '../../../services/vacunasService';
 import { COLORS } from '../../../constants/colors';
 import { formatFecha } from '../../../utils/format';
 import ScreenHeader from '../../../components/ScreenHeader';
+import useFincaStore from '../../../stores/fincaStore';
+import FincaActivaBar from '../../../components/FincaActivaBar';
 import Badge from '../../../components/Badge';
 
 const URGENCIA_COLOR = {
@@ -23,11 +25,13 @@ export default function VacunasScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [soloPendientes, setSoloPendientes] = useState(false);
+  const fincaActivaId = useFincaStore((s) => s.fincaActivaId);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['vacunas', { soloPendientes }],
+    queryKey: ['vacunas', { soloPendientes, fincaActivaId }],
     queryFn: () => vacunasService.listar({
       ...(soloPendientes && { pendientes: 'true' }),
+      ...(fincaActivaId && { finca_id: fincaActivaId }),
       limit: 100,
     }),
     select: (res) => res.data.data,
@@ -49,6 +53,7 @@ export default function VacunasScreen() {
         rightLabel="+ Nueva"
         onRightPress={() => router.push('/(app)/vacunas/nueva')}
       />
+      <FincaActivaBar />
 
       <View style={styles.filtros}>
         <TouchableOpacity

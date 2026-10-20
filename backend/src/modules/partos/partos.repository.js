@@ -14,7 +14,8 @@ const findAll = async (usuarioId, filtros = {}) => {
     let idx = 2;
 
     if (filtros.madre_id) { where.push(`p.madre_id = $${idx++}`); values.push(filtros.madre_id); }
-    if (filtros.finca_id) { where.push(`p.finca_id = $${idx++}`); values.push(filtros.finca_id); }
+    // La finca del registro, o si no tiene, la finca donde está la madre
+    if (filtros.finca_id) { where.push(`COALESCE(p.finca_id, a.finca_id) = $${idx++}`); values.push(filtros.finca_id); }
     if (filtros.resultado) { where.push(`p.resultado = $${idx++}`); values.push(filtros.resultado); }
 
     // Solo partos esperados en los próximos 30 días (sin fecha_parto registrada aún)

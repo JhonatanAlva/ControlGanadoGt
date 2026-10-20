@@ -14,7 +14,8 @@ const findAll = async (usuarioId, filtros = {}) => {
     let idx = 2;
 
     if (filtros.animal_id) { where.push(`v.animal_id = $${idx++}`); values.push(filtros.animal_id); }
-    if (filtros.finca_id) { where.push(`v.finca_id = $${idx++}`); values.push(filtros.finca_id); }
+    // La finca del registro, o si no tiene, la finca donde está el animal
+    if (filtros.finca_id) { where.push(`COALESCE(v.finca_id, a.finca_id) = $${idx++}`); values.push(filtros.finca_id); }
     if (filtros.tipo_vacuna) { where.push(`v.tipo_vacuna = $${idx++}`); values.push(filtros.tipo_vacuna); }
 
     // Solo vacunas con próxima dosis pendiente (vencidas o próximas 30 días)

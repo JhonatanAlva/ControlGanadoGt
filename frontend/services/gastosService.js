@@ -7,6 +7,7 @@ export const gastosService = {
   crear: (datos) => api.post('/gastos', datos),
   actualizar: (id, datos) => api.put(`/gastos/${id}`, datos),
   eliminar: (id) => api.delete(`/gastos/${id}`),
-  resumenMensual: (anio) => api.get('/gastos/resumen/mensual', { params: { anio } }),
+  resumenMensual: (anio, fincaId) =>
+    api.get('/gastos/resumen/mensual', { params: { anio, ...(fincaId && { finca_id: fincaId }) } }),
   resumenCategoria: (params = {}) => api.get('/gastos/resumen/categoria', { params }),
 };

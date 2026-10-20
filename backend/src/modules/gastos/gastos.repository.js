@@ -6,13 +6,16 @@
 const { query } = require('../../config/db');
 const paginate = require('../../utils/paginate');
 
+// Un movimiento es de una finca si se registró en ella, o si es de un animal que está en ella
+const FILTRO_FINCA = `COALESCE(g.finca_id, (SELECT finca_id FROM animales WHERE id = g.animal_id))`;
+
 const findAll = async (usuarioId, filtros = {}) => {
     const { page, limit, offset } = paginate(filtros);
     const values = [usuarioId];
     const where = ['g.usuario_id = $1'];
     let idx = 2;
 
-    if (filtros.finca_id) { where.push(`g.finca_id = $${idx++}`); values.push(filtros.finca_id); }
+    if (filtros.finca_id) { where.push(`${FILTRO_FINCA} = $${idx++}`); values.push(filtros.finca_id); }
     if (filtros.animal_id) { where.push(`g.animal_id = $${idx++}`); values.push(filtros.animal_id); }
     if (filtros.tipo) { where.push(`g.tipo = $${idx++}`); values.push(filtros.tipo); }
     if (filtros.categoria) { where.push(`g.categoria = $${idx++}`); values.push(filtros.categoria); }
@@ -104,7 +107,7 @@ const remove = async (id, usuarioId) => {
 };
 
 // ── Resumen financiero por mes ────────────────────────────────────────────────
-const getResumenMensual = async (usuarioId, anio) => {
+const getResumenMensual = async (usuarioId, anio, fincaId) => {
     const result = await query(
         `SELECT
         TO_CHAR(DATE_TRUNC('month', fecha), 'YYYY-MM') AS mes,
@@ -112,30 +115,32 @@ const getResumenMensual = async (usuarioId, anio) => {
         SUM(CASE WHEN tipo = 'Gasto'   THEN monto ELSE 0 END)  AS total_gastos,
         SUM(CASE WHEN tipo = 'Ingreso' THEN monto ELSE -monto END) AS balance,
         COUNT(*) AS total_movimientos
-     FROM gastos
+     FROM gastos g
      WHERE usuario_id = $1
        AND EXTRACT(YEAR FROM fecha) = $2
+       AND ($3::uuid IS NULL OR ${FILTRO_FINCA} = $3)
      GROUP BY DATE_TRUNC('month', fecha)
      ORDER BY mes ASC`,
-        [usuarioId, anio]
+        [usuarioId, anio, fincaId || null]
     );
     return result.rows;
 };
 
 // ── Resumen por categoría ────────────────────────────────────────────────────
-const getResumenPorCategoria = async (usuarioId, fechaDesde, fechaHasta) => {
+const getResumenPorCategoria = async (usuarioId, fechaDesde, fechaHasta, fincaId) => {
     const result = await query(
         `SELECT
         categoria,
         tipo,
         SUM(monto)  AS total,
         COUNT(*)    AS cantidad
-     FROM gastos
+     FROM gastos g
      WHERE usuario_id = $1
        AND fecha BETWEEN $2 AND $3
+       AND ($4::uuid IS NULL OR ${FILTRO_FINCA} = $4)
      GROUP BY categoria, tipo
      ORDER BY total DESC`,
-        [usuarioId, fechaDesde, fechaHasta]
+        [usuarioId, fechaDesde, fechaHasta, fincaId || null]
     );
     return result.rows;
 };

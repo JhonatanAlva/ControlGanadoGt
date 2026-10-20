@@ -14,6 +14,8 @@ import { COLORS } from '../../../constants/colors';
 import { ESTADOS_ANIMAL } from '../../../constants/enums';
 import { exportarPDF, htmlReporteAnimales } from '../../../utils/exportPdf';
 import ScreenHeader from '../../../components/ScreenHeader';
+import useFincaStore from '../../../stores/fincaStore';
+import FincaActivaBar from '../../../components/FincaActivaBar';
 import ChipPicker from '../../../components/ChipPicker';
 import Badge from '../../../components/Badge';
 
@@ -29,6 +31,7 @@ export default function AnimalesScreen() {
   const queryClient = useQueryClient();
   const { usuario } = useAuthStore();
   const conectado = useNetworkStatus();
+  const fincaActivaId = useFincaStore((s) => s.fincaActivaId);
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -49,9 +52,10 @@ export default function AnimalesScreen() {
   }, []);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['animales', { estado, search }],
+    queryKey: ['animales', { estado, search, fincaActivaId }],
     queryFn: () => animalesRepo.listar({
       ...(estado && { estado }),
+      ...(fincaActivaId && { finca_id: fincaActivaId }),
       ...(search && { search }),
       limit: 100,
     }),
@@ -86,6 +90,7 @@ export default function AnimalesScreen() {
         rightLabel="+ Nuevo"
         onRightPress={() => router.push('/(app)/animales/nuevo')}
       />
+      <FincaActivaBar />
 
       {!conectado && (
         <View style={styles.offlineBanner}>

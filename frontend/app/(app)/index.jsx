@@ -7,6 +7,8 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import useAuthStore from '../../stores/authStore';
+import useFincaStore from '../../stores/fincaStore';
+import FincaActivaBar from '../../components/FincaActivaBar';
 import { COLORS } from '../../constants/colors';
 import { animalesService } from '../../services/animalesService';
 import { vacunasService } from '../../services/vacunasService';
@@ -42,28 +44,30 @@ export default function DashboardScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const anio = new Date().getFullYear();
+  const fincaActivaId = useFincaStore((s) => s.fincaActivaId);
+  const filtroFinca = fincaActivaId ? { finca_id: fincaActivaId } : {};
 
   const animalesActivos = useQuery({
-    queryKey: ['dashboard', 'animales-activos'],
-    queryFn: () => animalesService.listar({ estado: 'Activo', limit: 1 }),
+    queryKey: ['dashboard', 'animales-activos', fincaActivaId],
+    queryFn: () => animalesService.listar({ estado: 'Activo', limit: 1, ...filtroFinca }),
     select: (res) => res.data.meta?.total ?? 0,
   });
 
   const vacunasPendientes = useQuery({
-    queryKey: ['dashboard', 'vacunas-pendientes'],
-    queryFn: () => vacunasService.listar({ pendientes: 'true', limit: 5 }),
+    queryKey: ['dashboard', 'vacunas-pendientes', fincaActivaId],
+    queryFn: () => vacunasService.listar({ pendientes: 'true', limit: 5, ...filtroFinca }),
     select: (res) => ({ total: res.data.meta?.total ?? 0, items: res.data.data }),
   });
 
   const partosProximos = useQuery({
-    queryKey: ['dashboard', 'partos-proximos'],
-    queryFn: () => partosService.listar({ proximos: 'true', limit: 5 }),
+    queryKey: ['dashboard', 'partos-proximos', fincaActivaId],
+    queryFn: () => partosService.listar({ proximos: 'true', limit: 5, ...filtroFinca }),
     select: (res) => ({ total: res.data.meta?.total ?? 0, items: res.data.data }),
   });
 
   const balanceMensual = useQuery({
-    queryKey: ['dashboard', 'balance-mensual', anio],
-    queryFn: () => gastosService.resumenMensual(anio),
+    queryKey: ['dashboard', 'balance-mensual', anio, fincaActivaId],
+    queryFn: () => gastosService.resumenMensual(anio, fincaActivaId),
     select: (res) => res.data.data.totales,
   });
 
@@ -91,6 +95,8 @@ export default function DashboardScreen() {
           <Text style={styles.logoutText}>Salir</Text>
         </TouchableOpacity>
       </View>
+
+      <FincaActivaBar />
 
       {hayError && (
         <View style={styles.errorBanner}>

@@ -12,6 +12,8 @@ import { COLORS } from '../../../constants/colors';
 import { formatQ, formatFecha } from '../../../utils/format';
 import { exportarPDF, htmlReporteGastos } from '../../../utils/exportPdf';
 import ScreenHeader from '../../../components/ScreenHeader';
+import useFincaStore from '../../../stores/fincaStore';
+import FincaActivaBar from '../../../components/FincaActivaBar';
 import ChipPicker from '../../../components/ChipPicker';
 import BarList from '../../../components/BarList';
 import PrimaryButton from '../../../components/PrimaryButton';
@@ -28,22 +30,25 @@ export default function GastosScreen() {
   const [tipo, setTipo] = useState('');
   const [categoria, setCategoria] = useState('');
   const [exportando, setExportando] = useState(false);
+  const fincaActivaId = useFincaStore((s) => s.fincaActivaId);
+  const filtroFinca = fincaActivaId ? { finca_id: fincaActivaId } : {};
 
   const resumenQuery = useQuery({
-    queryKey: ['gastos', 'resumen-mensual', anio],
-    queryFn: () => gastosService.resumenMensual(anio),
+    queryKey: ['gastos', 'resumen-mensual', anio, fincaActivaId],
+    queryFn: () => gastosService.resumenMensual(anio, fincaActivaId),
     select: (res) => res.data.data,
   });
 
   const categoriaQuery = useQuery({
-    queryKey: ['gastos', 'resumen-categoria', anio],
-    queryFn: () => gastosService.resumenCategoria({ fecha_desde: `${anio}-01-01` }),
+    queryKey: ['gastos', 'resumen-categoria', anio, fincaActivaId],
+    queryFn: () => gastosService.resumenCategoria({ fecha_desde: `${anio}-01-01`, ...filtroFinca }),
     select: (res) => res.data.data.categorias,
   });
 
   const listQuery = useQuery({
-    queryKey: ['gastos', 'lista', { tipo, categoria }],
+    queryKey: ['gastos', 'lista', { tipo, categoria, fincaActivaId }],
     queryFn: () => gastosService.listar({
+      ...filtroFinca,
       ...(tipo && { tipo }),
       ...(categoria && { categoria }),
       limit: 100,
@@ -99,6 +104,7 @@ export default function GastosScreen() {
         rightLabel="+ Nuevo"
         onRightPress={() => router.push('/(app)/gastos/nuevo')}
       />
+      <FincaActivaBar />
 
       <ScrollView
         style={{ flex: 1 }}

@@ -29,4 +29,11 @@ const filtrosGastoSchema = z.object({
     limit: z.string().optional(),
 }).optional();
 
-module.exports = { crearGastoSchema, actualizarGastoSchema, filtrosGastoSchema };
+const filtrosResumenSchema = z.object({
+    anio: z.coerce.number().int().min(2000).max(2100).optional(),
+    finca_id: z.string().uuid().optional(),
+    fecha_desde: z.string().date().optional(),
+    fecha_hasta: z.string().date().optional(),
+}).optional();
+
+module.exports = { crearGastoSchema, actualizarGastoSchema, filtrosGastoSchema, filtrosResumenSchema };

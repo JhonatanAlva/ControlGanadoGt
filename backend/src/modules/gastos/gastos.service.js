@@ -47,7 +47,7 @@ const eliminar = async (id, usuarioId) => {
 // ── Resumen mensual del año ──────────────────────────────────────────────────
 const resumenMensual = async (usuarioId, query_params) => {
     const anio = parseInt(query_params.anio, 10) || new Date().getFullYear();
-    const meses = await repo.getResumenMensual(usuarioId, anio);
+    const meses = await repo.getResumenMensual(usuarioId, anio, query_params.finca_id);
 
     // Calcular totales anuales
     const totales = meses.reduce(
@@ -64,12 +64,12 @@ const resumenMensual = async (usuarioId, query_params) => {
 };
 
 // ── Resumen por categoría ─────────────────────────────────────────────────────
-const resumenCategoria = async (usuarioId, { fecha_desde, fecha_hasta }) => {
+const resumenCategoria = async (usuarioId, { fecha_desde, fecha_hasta, finca_id }) => {
     const hoy = new Date().toISOString().split('T')[0];
     const inicio = fecha_desde || `${new Date().getFullYear()}-01-01`;
     const fin = fecha_hasta || hoy;
 
-    const categorias = await repo.getResumenPorCategoria(usuarioId, inicio, fin);
+    const categorias = await repo.getResumenPorCategoria(usuarioId, inicio, fin, finca_id);
     return { fecha_desde: inicio, fecha_hasta: fin, categorias };
 };
 

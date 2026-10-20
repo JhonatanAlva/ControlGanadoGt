@@ -19,6 +19,7 @@ const {
     crearGastoSchema,
     actualizarGastoSchema,
     filtrosGastoSchema,
+    filtrosResumenSchema,
 } = require('./gastos.schema');
 
 const router = Router();
@@ -26,8 +27,8 @@ const router = Router();
 router.use(auth);
 
 // Resúmenes primero para que no los atrape /:id
-router.get('/resumen/mensual', controller.resumenMensual);
-router.get('/resumen/categoria', controller.resumenCategoria);
+router.get('/resumen/mensual', validate(filtrosResumenSchema, 'query'), controller.resumenMensual);
+router.get('/resumen/categoria', validate(filtrosResumenSchema, 'query'), controller.resumenCategoria);
 
 router.get('/', validate(filtrosGastoSchema, 'query'), controller.listar);
 router.post('/', validate(crearGastoSchema), controller.crear);
