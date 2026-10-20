@@ -15,6 +15,7 @@ import FormInput from '../../../components/FormInput';
 import ChipPicker from '../../../components/ChipPicker';
 import PrimaryButton from '../../../components/PrimaryButton';
 import Badge from '../../../components/Badge';
+import { verificarLimitePlan } from '../../../utils/limitesPlan';
 
 export default function DetalleParteScreen() {
   const { id } = useLocalSearchParams();
@@ -59,7 +60,7 @@ export default function DetalleParteScreen() {
     onError: (err) => Alert.alert('Error', err.mensaje || 'No se pudo registrar el resultado.'),
   });
 
-  const handleGuardar = () => {
+  const handleGuardar = async () => {
     if (!form.fecha_parto || !form.tipo_parto || !form.resultado) {
       Alert.alert('Campos requeridos', 'Ingresa fecha, tipo de parto y resultado.');
       return;
@@ -68,6 +69,7 @@ export default function DetalleParteScreen() {
       Alert.alert('Campo requerido', 'Si la cría nace viva, ingresa su número de arete.');
       return;
     }
+    if (form.cria_arete.trim() && !(await verificarLimitePlan('animales'))) return;
     mutation.mutate();
   };
 

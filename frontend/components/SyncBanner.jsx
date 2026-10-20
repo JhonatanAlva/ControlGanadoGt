@@ -8,7 +8,9 @@ import {
 } from '../offline/syncManager';
 import { COLORS } from '../constants/colors';
 
-const NOMBRE_ENTIDAD = { animales: 'Animal', vacunas: 'Vacuna', partos: 'Parto', gastos: 'Movimiento' };
+const NOMBRE_ENTIDAD = {
+  animales: 'Animal', vacunas: 'Vacuna', partos: 'Parto', gastos: 'Movimiento', fincas: 'Finca',
+};
 
 export default function SyncBanner() {
   const conectado = useNetworkStatus();

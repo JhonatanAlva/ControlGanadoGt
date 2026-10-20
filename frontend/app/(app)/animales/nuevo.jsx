@@ -13,6 +13,7 @@ import ChipPicker from '../../../components/ChipPicker';
 import AnimalPicker from '../../../components/AnimalPicker';
 import PrimaryButton from '../../../components/PrimaryButton';
 import PhotoPicker from '../../../components/PhotoPicker';
+import { verificarLimitePlan } from '../../../utils/limitesPlan';
 
 export default function NuevoAnimalScreen() {
   const router = useRouter();
@@ -78,11 +79,12 @@ export default function NuevoAnimalScreen() {
     onError: (err) => Alert.alert('Error', err.mensaje || 'No se pudo registrar el animal.'),
   });
 
-  const handleGuardar = () => {
+  const handleGuardar = async () => {
     if (!form.numero_arete.trim()) return Alert.alert('Campo requerido', 'El número de arete es obligatorio.');
     if (!form.raza) return Alert.alert('Campo requerido', 'Selecciona la raza.');
     if (!form.sexo) return Alert.alert('Campo requerido', 'Selecciona el sexo.');
     if (!form.tipo) return Alert.alert('Campo requerido', 'Selecciona el tipo.');
+    if (!(await verificarLimitePlan('animales'))) return;
     mutation.mutate();
   };
 

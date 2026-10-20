@@ -10,6 +10,7 @@ import { fincasRepo } from '../../../offline/fincasRepo';
 import useFincaStore from '../../../stores/fincaStore';
 import { COLORS } from '../../../constants/colors';
 import { REGIONES_GUATEMALA } from '../../../constants/enums';
+import { verificarLimitePlan } from '../../../utils/limitesPlan';
 
 export default function NuevaFincaScreen() {
   const router = useRouter();
@@ -42,11 +43,12 @@ export default function NuevaFincaScreen() {
     },
   });
 
-  const handleGuardar = () => {
+  const handleGuardar = async () => {
     if (!form.nombre.trim()) {
       Alert.alert('Campo requerido', 'El nombre de la finca es obligatorio.');
       return;
     }
+    if (!(await verificarLimitePlan('fincas'))) return;
     mutation.mutate();
   };
 

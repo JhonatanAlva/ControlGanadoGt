@@ -14,6 +14,7 @@ import { exportarPDF, htmlReporteAnimales } from '../../../utils/exportPdf';
 import ScreenHeader from '../../../components/ScreenHeader';
 import useFincaStore from '../../../stores/fincaStore';
 import FincaActivaBar from '../../../components/FincaActivaBar';
+import { verificarLimitePlan } from '../../../utils/limitesPlan';
 import SyncBanner from '../../../components/SyncBanner';
 import ChipPicker from '../../../components/ChipPicker';
 import Badge from '../../../components/Badge';
@@ -78,7 +79,9 @@ export default function AnimalesScreen() {
       <ScreenHeader
         title="Animales"
         rightLabel="+ Nuevo"
-        onRightPress={() => router.push('/(app)/animales/nuevo')}
+        onRightPress={async () => {
+          if (await verificarLimitePlan('animales')) router.push('/(app)/animales/nuevo');
+        }}
       />
       <FincaActivaBar />
       <SyncBanner />

@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fincasRepo } from '../../../offline/fincasRepo';
 import useFincaStore from '../../../stores/fincaStore';
 import { COLORS } from '../../../constants/colors';
+import { verificarLimitePlan } from '../../../utils/limitesPlan';
 
 export default function FincasScreen() {
   const router = useRouter();
@@ -36,7 +37,11 @@ export default function FincasScreen() {
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Mis Fincas</Text>
-        <TouchableOpacity onPress={() => router.push('/(app)/fincas/nueva')}>
+        <TouchableOpacity
+          onPress={async () => {
+            if (await verificarLimitePlan('fincas')) router.push('/(app)/fincas/nueva');
+          }}
+        >
           <Text style={styles.addBtn}>+ Nueva</Text>
         </TouchableOpacity>
       </View>
