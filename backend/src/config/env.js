@@ -6,7 +6,7 @@
 
 'use strict';
 
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const required = [
   'NODE_ENV',

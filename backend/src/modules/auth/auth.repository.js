@@ -73,6 +73,48 @@ const updatePassword = async (id, passwordHash) => {
   ]);
 };
 
+// ── Recuperación de contraseña ───────────────────────────────────────────────
+
+const countResetsRecientes = async (usuarioId) => {
+  const result = await query(
+    `SELECT COUNT(*) AS total FROM password_resets
+     WHERE usuario_id = $1 AND creado_en > NOW() - INTERVAL '1 hour'`,
+    [usuarioId],
+  );
+  return parseInt(result.rows[0].total, 10);
+};
+
+// Invalida códigos anteriores y crea uno nuevo
+const createReset = async (usuarioId, codigoHash, minutos) => {
+  await query(
+    "UPDATE password_resets SET usado_en = NOW() WHERE usuario_id = $1 AND usado_en IS NULL",
+    [usuarioId],
+  );
+  await query(
+    `INSERT INTO password_resets (usuario_id, codigo_hash, expira_en)
+     VALUES ($1, $2, NOW() + make_interval(mins => $3))`,
+    [usuarioId, codigoHash, minutos],
+  );
+};
+
+const findResetVigente = async (usuarioId) => {
+  const result = await query(
+    `SELECT id, codigo_hash, intentos FROM password_resets
+     WHERE usuario_id = $1 AND usado_en IS NULL AND expira_en > NOW()
+     ORDER BY creado_en DESC LIMIT 1`,
+    [usuarioId],
+  );
+  return result.rows[0] || null;
+};
+
+const sumarIntentoReset = async (id) => {
+  await query("UPDATE password_resets SET intentos = intentos + 1 WHERE id = $1", [id]);
+};
+
+const marcarResetUsado = async (id) => {
+  await query("UPDATE password_resets SET usado_en = NOW() WHERE id = $1", [id]);
+};
+
 module.exports = {
   findByEmail,
   findById,
@@ -80,4 +122,9 @@ module.exports = {
   create,
   update,
   updatePassword,
+  countResetsRecientes,
+  createReset,
+  findResetVigente,
+  sumarIntentoReset,
+  marcarResetUsado,
 };

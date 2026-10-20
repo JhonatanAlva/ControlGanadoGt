@@ -13,7 +13,7 @@ export default function LoginScreen() {
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
-  const { login, error, limpiarError } = useAuthStore();
+  const { login, limpiarError } = useAuthStore();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -24,7 +24,7 @@ export default function LoginScreen() {
     limpiarError();
     const ok = await login(email.trim().toLowerCase(), password);
     setLoading(false);
-    if (!ok) Alert.alert('Error', error || 'No se pudo iniciar sesión.');
+    if (!ok) Alert.alert('Error', useAuthStore.getState().error || 'No se pudo iniciar sesión.');
   };
 
   return (
@@ -65,6 +65,10 @@ export default function LoginScreen() {
             onChangeText={setPassword}
             secureTextEntry
           />
+
+          <Link href="/(auth)/recuperar" style={styles.olvide}>
+            <Text style={styles.link}>¿Olvidaste tu contraseña?</Text>
+          </Link>
 
           <TouchableOpacity
             style={[styles.btn, loading && { opacity: 0.7 }]}
@@ -125,4 +129,5 @@ const styles = StyleSheet.create({
   row:      { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
   grayText: { color: COLORS.gray500, fontSize: 14 },
   link:     { color: COLORS.primary, fontWeight: '600', fontSize: 14 },
+  olvide:   { alignSelf: 'flex-end', marginTop: -6, marginBottom: 8 },
 });

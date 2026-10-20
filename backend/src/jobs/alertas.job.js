@@ -9,7 +9,7 @@ const cron = require('node-cron');
 const repo = require('../modules/vacunas/vacunas.repository');
 const { sendMail } = require('../config/mailer');
 const logger = require('../utils/logger');
-const { formatQuetzales, diasHasta } = require('../utils/calculos');
+const { diasHasta } = require('../utils/calculos');
 
 const procesarAlertas = async () => {
     logger.info('🔔  Job alertas: revisando vacunas pendientes...');

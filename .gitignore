@@ -3,3 +3,5 @@ node_modules
 dist
 build
 pgdata
+# Respaldos de la base de datos (cifrados, pero no van al repositorio)
+respaldos/

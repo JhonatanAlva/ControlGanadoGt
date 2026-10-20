@@ -45,6 +45,7 @@ app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 200,
+    skip: () => env.NODE_ENV === "test", // solo la suite de pruebas
     standardHeaders: true,
     legacyHeaders: false,
     message: {
@@ -58,6 +59,7 @@ app.use(
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
+  skip: () => env.NODE_ENV === "test", // solo la suite de pruebas
   message: {
     success: false,
     message: "Demasiados intentos de acceso. Espera 15 minutos.",

@@ -37,7 +37,10 @@
           "cameraPermission": "Permite a GanaderíaGT usar la cámara para tomar fotos de tus animales."
         }
       ],
-      "expo-sqlite"
+      [
+        "expo-sqlite",
+        { "useSQLCipher": true }
+      ]
     ],
     "experiments": {
       "typedRoutes": false

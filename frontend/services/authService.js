@@ -8,4 +8,6 @@ export const authService = {
   logout:   ()      => api.post('/auth/logout'),
   actualizarPerfil: (datos) => api.put('/auth/me', datos),
   cambiarPassword:  (datos) => api.put('/auth/password', datos),
+  solicitarRecuperacion: (email) => api.post('/auth/recuperar', { email }),
+  restablecerPassword:   (datos) => api.post('/auth/restablecer', datos),
 };

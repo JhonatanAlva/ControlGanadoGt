@@ -31,6 +31,7 @@ const isDev = process.env.NODE_ENV !== "production";
 
 const logger = createLogger({
   level: isDev ? "debug" : "info",
+  silent: process.env.NODE_ENV === "test",
   format: isDev ? devFormat : prodFormat,
   transports: [
     new transports.Console(),

@@ -10,6 +10,9 @@ services:
       POSTGRES_USER:     ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB:       ${DB_NAME}
+      # Usuario de permisos mínimos para el API (lo crea migrations/003_rol_app.sh)
+      APP_DB_USER:       ${APP_DB_USER}
+      APP_DB_PASSWORD:   ${APP_DB_PASSWORD}
     # Solo accesible desde esta máquina (no desde la red local)
     ports:
       - "127.0.0.1:${DB_PORT:-5432}:5432"
@@ -55,8 +58,8 @@ services:
       PORT:                  3000
       DB_HOST:               postgres
       DB_PORT:               5432
-      DB_USER:               ${DB_USER}
-      DB_PASSWORD:           ${DB_PASSWORD}
+      DB_USER:               ${APP_DB_USER}
+      DB_PASSWORD:           ${APP_DB_PASSWORD}
       DB_NAME:               ${DB_NAME}
       JWT_SECRET:            ${JWT_SECRET}
       JWT_EXPIRES_IN:        ${JWT_EXPIRES_IN:-7d}

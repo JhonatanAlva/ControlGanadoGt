@@ -57,6 +57,24 @@ const cambiarPassword = async (req, res, next) => {
   }
 };
 
+const solicitarRecuperacion = async (req, res, next) => {
+  try {
+    await service.solicitarRecuperacion(req.body);
+    ok(res, null, "Si el correo está registrado, te enviamos un código de 6 dígitos.");
+  } catch (err) {
+    next(err);
+  }
+};
+
+const restablecerPassword = async (req, res, next) => {
+  try {
+    await service.restablecerPassword(req.body);
+    ok(res, null, "Contraseña restablecida. Ya puedes iniciar sesión.");
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   registro,
   login,
@@ -64,4 +82,6 @@ module.exports = {
   logout,
   actualizarPerfil,
   cambiarPassword,
+  solicitarRecuperacion,
+  restablecerPassword,
 };

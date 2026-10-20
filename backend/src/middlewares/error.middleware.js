@@ -66,7 +66,6 @@ const sendProdError = (err, res) => {
 };
 
 // ── Handler principal ────────────────────────────────────────────────────────
-// eslint-disable-next-line no-unused-vars
 const errorMiddleware = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";

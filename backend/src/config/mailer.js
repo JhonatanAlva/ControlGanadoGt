@@ -45,6 +45,12 @@ if (env.isDev) {
  * @param {string} [options.text]  - Cuerpo texto plano (fallback)
  */
 const sendMail = async ({ to, subject, html, text }) => {
+  // Solo en desarrollo y sin credenciales SMTP: el correo se muestra en la consola
+  if (env.isDev && !process.env.MAIL_USER) {
+    logger.warn(`📧  [DEV, sin SMTP] Para: ${to} | ${subject}\n${text || '(solo HTML)'}`);
+    return { messageId: 'dev-consola' };
+  }
+
   try {
     const info = await transporter.sendMail({
       from:    process.env.MAIL_FROM || '"GanaderíaGT" <noreply@ganaderiagt.com>',

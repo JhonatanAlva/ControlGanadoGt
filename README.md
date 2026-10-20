@@ -23,7 +23,9 @@ Genera cada secreto con:
 node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 ```
 
-`DB_PASSWORD` y `JWT_SECRET` deben ser iguales en `.env` y `backend/.env`. `JWT_SECRET` necesita al menos 32 caracteres o el backend no arranca.
+En `backend/.env`:
+- `DB_USER`/`DB_PASSWORD` son el `APP_DB_USER`/`APP_DB_PASSWORD` del `.env` de la raíz. El API usa un usuario de **permisos mínimos**, nunca el superusuario de PostgreSQL.
+- `JWT_SECRET` debe ser igual en ambos archivos y tener al menos 32 caracteres, o el backend no arranca.
 
 ```bash
 # 2. Dependencias
@@ -44,6 +46,8 @@ cd backend && npm run dev
 cd frontend && npx expo start
 ```
 
+**Recuperar contraseña en desarrollo:** si no hay `MAIL_USER` en `backend/.env`, el código de 6 dígitos aparece en la consola del backend en lugar de enviarse por correo.
+
 pgAdmin no arranca por defecto. Cuando lo necesites:
 
 ```bash
@@ -59,6 +63,40 @@ Todos los puertos están limitados a `127.0.0.1`, así que nadie en tu red puede
 1. Corre el backend con `npm run dev`, que escucha en todas las interfaces de tu PC.
 2. En `frontend/.env` pon `EXPO_PUBLIC_API_URL=http://<IP-de-tu-PC>:3000/api/v1`.
 3. Permite el puerto 3000 en el Firewall de Windows **solo para redes privadas**.
+
+## Migraciones en una base existente
+
+Docker solo ejecuta `backend/migrations/` la primera vez que crea el volumen. Para aplicar una migración nueva a una base que ya existe:
+
+```bash
+docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /docker-entrypoint-initdb.d/00X_nombre.sql'
+```
+
+## Pruebas y lint
+
+```bash
+cd backend
+npm test        # pruebas de seguridad contra la base de desarrollo (requiere postgres arriba)
+npm run lint
+```
+
+## Respaldos cifrados
+
+```bash
+./scripts/respaldo-db.sh                                    # crea respaldo cifrado en respaldos/
+./scripts/respaldo-db.sh restaurar respaldos/<archivo>.enc  # restaura (reemplaza los datos)
+```
+
+Usa `BACKUP_PASSPHRASE` del `.env`. **Guarda esa frase también en un gestor de contraseñas:** sin ella los respaldos no se pueden abrir. Copia los respaldos fuera de esta computadora (disco externo o nube).
+
+## Cifrado de la base local del teléfono
+
+La caché offline (SQLite) se cifra con SQLCipher, y la clave vive en el Keystore del teléfono. **Expo Go no incluye SQLCipher**, así que ahí la base local no se cifra (aparece un aviso en consola). El cifrado se activa en un build propio:
+
+```bash
+cd frontend
+npx expo run:android      # build de desarrollo con módulos nativos
+```
 
 ## Todo en Docker (modo producción local)
 

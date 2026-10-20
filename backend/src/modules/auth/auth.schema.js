@@ -43,9 +43,21 @@ const cambiarPasswordSchema = z.object({
   passwordNueva: passwordSegura,
 });
 
+const solicitarRecuperacionSchema = z.object({
+  email: z.string().email("Email inválido").toLowerCase(),
+});
+
+const restablecerPasswordSchema = z.object({
+  email: z.string().email("Email inválido").toLowerCase(),
+  codigo: z.string().regex(/^\d{6}$/, "El código debe tener 6 dígitos"),
+  passwordNueva: passwordSegura,
+});
+
 module.exports = {
   registroSchema,
   loginSchema,
   actualizarPerfilSchema,
   cambiarPasswordSchema,
+  solicitarRecuperacionSchema,
+  restablecerPasswordSchema,
 };
