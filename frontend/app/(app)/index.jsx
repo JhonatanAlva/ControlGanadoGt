@@ -10,10 +10,11 @@ import useAuthStore from '../../stores/authStore';
 import useFincaStore from '../../stores/fincaStore';
 import FincaActivaBar from '../../components/FincaActivaBar';
 import { COLORS } from '../../constants/colors';
-import { animalesService } from '../../services/animalesService';
-import { vacunasService } from '../../services/vacunasService';
-import { partosService } from '../../services/partosService';
-import { gastosService } from '../../services/gastosService';
+import * as animalesRepo from '../../offline/animalesRepo';
+import { vacunasRepo } from '../../offline/vacunasRepo';
+import { partosRepo } from '../../offline/partosRepo';
+import { gastosRepo } from '../../offline/gastosRepo';
+import SyncBanner from '../../components/SyncBanner';
 import { formatQ, formatFecha } from '../../utils/format';
 
 const MODULOS = [
@@ -49,26 +50,24 @@ export default function DashboardScreen() {
 
   const animalesActivos = useQuery({
     queryKey: ['dashboard', 'animales-activos', fincaActivaId],
-    queryFn: () => animalesService.listar({ estado: 'Activo', limit: 1, ...filtroFinca }),
-    select: (res) => res.data.meta?.total ?? 0,
+    queryFn: () => animalesRepo.listarConTotal({ estado: 'Activo', limit: 1, ...filtroFinca }),
+    select: (r) => r.total,
   });
 
   const vacunasPendientes = useQuery({
     queryKey: ['dashboard', 'vacunas-pendientes', fincaActivaId],
-    queryFn: () => vacunasService.listar({ pendientes: 'true', limit: 5, ...filtroFinca }),
-    select: (res) => ({ total: res.data.meta?.total ?? 0, items: res.data.data }),
+    queryFn: () => vacunasRepo.listarConTotal({ pendientes: 'true', limit: 5, ...filtroFinca }),
   });
 
   const partosProximos = useQuery({
     queryKey: ['dashboard', 'partos-proximos', fincaActivaId],
-    queryFn: () => partosService.listar({ proximos: 'true', limit: 5, ...filtroFinca }),
-    select: (res) => ({ total: res.data.meta?.total ?? 0, items: res.data.data }),
+    queryFn: () => partosRepo.listarConTotal({ proximos: 'true', limit: 5, ...filtroFinca }),
   });
 
   const balanceMensual = useQuery({
     queryKey: ['dashboard', 'balance-mensual', anio, fincaActivaId],
-    queryFn: () => gastosService.resumenMensual(anio, fincaActivaId),
-    select: (res) => res.data.data.totales,
+    queryFn: () => gastosRepo.resumenMensual(anio, fincaActivaId),
+    select: (data) => data.totales,
   });
 
   const [refreshing, setRefreshing] = useState(false);
@@ -97,6 +96,7 @@ export default function DashboardScreen() {
       </View>
 
       <FincaActivaBar />
+      <SyncBanner />
 
       {hayError && (
         <View style={styles.errorBanner}>

@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { partosService } from '../../../services/partosService';
+import { partosRepo } from '../../../offline/partosRepo';
 import { COLORS } from '../../../constants/colors';
 import { formatFecha } from '../../../utils/format';
 import { TIPOS_PARTO, RESULTADOS_PARTO, SEXOS } from '../../../constants/enums';
@@ -22,8 +22,7 @@ export default function DetalleParteScreen() {
 
   const { data: parto, isLoading } = useQuery({
     queryKey: ['partos', id],
-    queryFn: () => partosService.obtener(id),
-    select: (res) => res.data.data.parto,
+    queryFn: () => partosRepo.obtener(id),
   });
 
   const [form, setForm] = useState({
@@ -34,7 +33,7 @@ export default function DetalleParteScreen() {
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
 
   const mutation = useMutation({
-    mutationFn: () => partosService.registrarResultado(id, {
+    mutationFn: () => partosRepo.registrarResultado(id, {
       fecha_parto: form.fecha_parto,
       tipo_parto: form.tipo_parto,
       resultado: form.resultado,
@@ -45,16 +44,17 @@ export default function DetalleParteScreen() {
       costo_veterinario: form.costo_veterinario ? parseFloat(form.costo_veterinario) : undefined,
       notas: form.notas.trim() || undefined,
     }),
-    onSuccess: async (res) => {
+    onSuccess: async (resultado) => {
       await queryClient.invalidateQueries({ queryKey: ['partos'] });
       await queryClient.invalidateQueries({ queryKey: ['animales'] });
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      Alert.alert(
-        'Listo',
-        res.data.data.cria_creada
-          ? 'Parto registrado. La cría se creó automáticamente como nuevo animal.'
-          : 'Parto registrado.',
-      );
+      let mensaje = 'Parto registrado.';
+      if (resultado._local) {
+        mensaje = 'Guardado sin conexión. Al volver la señal se enviará y, si nació viva, se creará la cría.';
+      } else if (resultado.cria_creada) {
+        mensaje = 'Parto registrado. La cría se creó automáticamente como nuevo animal.';
+      }
+      Alert.alert('Listo', mensaje);
     },
     onError: (err) => Alert.alert('Error', err.mensaje || 'No se pudo registrar el resultado.'),
   });

@@ -7,8 +7,6 @@ import {
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as animalesRepo from '../../../offline/animalesRepo';
-import { contarPendientes, suscribirseASync } from '../../../offline/syncManager';
-import useNetworkStatus from '../../../hooks/useNetworkStatus';
 import useAuthStore from '../../../stores/authStore';
 import { COLORS } from '../../../constants/colors';
 import { ESTADOS_ANIMAL } from '../../../constants/enums';
@@ -16,6 +14,7 @@ import { exportarPDF, htmlReporteAnimales } from '../../../utils/exportPdf';
 import ScreenHeader from '../../../components/ScreenHeader';
 import useFincaStore from '../../../stores/fincaStore';
 import FincaActivaBar from '../../../components/FincaActivaBar';
+import SyncBanner from '../../../components/SyncBanner';
 import ChipPicker from '../../../components/ChipPicker';
 import Badge from '../../../components/Badge';
 
@@ -30,26 +29,17 @@ export default function AnimalesScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { usuario } = useAuthStore();
-  const conectado = useNetworkStatus();
   const fincaActivaId = useFincaStore((s) => s.fincaActivaId);
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [estado, setEstado] = useState('Activo');
   const [exportando, setExportando] = useState(false);
-  const [pendientes, setPendientes] = useState(0);
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 400);
     return () => clearTimeout(t);
   }, [searchInput]);
-
-  useEffect(() => {
-    const cargarPendientes = () => contarPendientes().then(setPendientes);
-    cargarPendientes();
-    const unsub = suscribirseASync(cargarPendientes);
-    return unsub;
-  }, []);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['animales', { estado, search, fincaActivaId }],
@@ -91,20 +81,7 @@ export default function AnimalesScreen() {
         onRightPress={() => router.push('/(app)/animales/nuevo')}
       />
       <FincaActivaBar />
-
-      {!conectado && (
-        <View style={styles.offlineBanner}>
-          <Text style={styles.offlineText}>
-            📡 Sin conexión — mostrando datos guardados{pendientes > 0 ? ` · ${pendientes} cambio(s) por sincronizar` : ''}
-          </Text>
-        </View>
-      )}
-      {conectado && pendientes > 0 && (
-        <View style={styles.syncBanner}>
-          <ActivityIndicator size="small" color={COLORS.secondary} />
-          <Text style={styles.syncText}>Sincronizando {pendientes} cambio(s)...</Text>
-        </View>
-      )}
+      <SyncBanner />
 
       <View style={styles.filtros}>
         <TextInput
@@ -183,13 +160,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   exportLink: { color: COLORS.primary, fontWeight: '600', fontSize: 13, marginTop: 4 },
-  offlineBanner: { backgroundColor: '#fdf2e0', paddingVertical: 8, paddingHorizontal: 16 },
-  offlineText: { color: '#a06a12', fontSize: 12, textAlign: 'center' },
-  syncBanner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: COLORS.primaryLight, paddingVertical: 8, paddingHorizontal: 16,
-  },
-  syncText: { color: COLORS.primaryDark, fontSize: 12 },
   errorText: { color: COLORS.danger, textAlign: 'center', marginTop: 24, paddingHorizontal: 24 },
   emptyText: { color: COLORS.gray500, textAlign: 'center', marginTop: 32, paddingHorizontal: 32, fontSize: 14 },
   card: {

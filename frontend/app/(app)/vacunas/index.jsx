@@ -6,12 +6,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { vacunasService } from '../../../services/vacunasService';
+import { vacunasRepo } from '../../../offline/vacunasRepo';
 import { COLORS } from '../../../constants/colors';
 import { formatFecha } from '../../../utils/format';
 import ScreenHeader from '../../../components/ScreenHeader';
 import useFincaStore from '../../../stores/fincaStore';
 import FincaActivaBar from '../../../components/FincaActivaBar';
+import SyncBanner from '../../../components/SyncBanner';
 import Badge from '../../../components/Badge';
 
 const URGENCIA_COLOR = {
@@ -29,12 +30,11 @@ export default function VacunasScreen() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['vacunas', { soloPendientes, fincaActivaId }],
-    queryFn: () => vacunasService.listar({
+    queryFn: () => vacunasRepo.listar({
       ...(soloPendientes && { pendientes: 'true' }),
       ...(fincaActivaId && { finca_id: fincaActivaId }),
       limit: 100,
     }),
-    select: (res) => res.data.data,
   });
 
   const [refreshing, setRefreshing] = useState(false);
@@ -54,6 +54,7 @@ export default function VacunasScreen() {
         onRightPress={() => router.push('/(app)/vacunas/nueva')}
       />
       <FincaActivaBar />
+      <SyncBanner />
 
       <View style={styles.filtros}>
         <TouchableOpacity

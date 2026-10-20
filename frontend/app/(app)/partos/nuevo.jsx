@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { ScrollView, View, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { partosService } from '../../../services/partosService';
-import { animalesService } from '../../../services/animalesService';
+import { partosRepo } from '../../../offline/partosRepo';
+import * as animalesRepo from '../../../offline/animalesRepo';
 import { TIPOS_REPRODUCCION } from '../../../constants/enums';
 import ScreenHeader from '../../../components/ScreenHeader';
 import FormInput from '../../../components/FormInput';
@@ -18,14 +18,12 @@ export default function NuevoPartoScreen() {
 
   const { data: hembras } = useQuery({
     queryKey: ['animales', { estado: 'Activo', sexo: 'Hembra' }],
-    queryFn: () => animalesService.listar({ estado: 'Activo', sexo: 'Hembra', limit: 100 }),
-    select: (res) => res.data.data,
+    queryFn: () => animalesRepo.listar({ estado: 'Activo', sexo: 'Hembra', limit: 100 }),
   });
 
   const { data: machos } = useQuery({
     queryKey: ['animales', { estado: 'Activo', sexo: 'Macho' }],
-    queryFn: () => animalesService.listar({ estado: 'Activo', sexo: 'Macho', limit: 100 }),
-    select: (res) => res.data.data,
+    queryFn: () => animalesRepo.listar({ estado: 'Activo', sexo: 'Macho', limit: 100 }),
   });
 
   const [form, setForm] = useState({
@@ -34,7 +32,7 @@ export default function NuevoPartoScreen() {
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
 
   const mutation = useMutation({
-    mutationFn: () => partosService.registrarServicio({
+    mutationFn: () => partosRepo.registrarServicio({
       madre_id: form.madre_id,
       padre_id: form.padre_id || undefined,
       padre_arete: form.padre_arete.trim() || undefined,
@@ -42,10 +40,12 @@ export default function NuevoPartoScreen() {
       fecha_servicio: form.fecha_servicio,
       notas: form.notas.trim() || undefined,
     }),
-    onSuccess: async () => {
+    onSuccess: async (parto) => {
       await queryClient.invalidateQueries({ queryKey: ['partos'] });
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      Alert.alert('Listo', 'Servicio registrado. La fecha de parto esperada se calculó automáticamente.', [
+      Alert.alert('Listo', parto._local
+        ? 'Guardado sin conexión. Se enviará al servidor cuando vuelva la señal.'
+        : 'Servicio registrado. La fecha de parto esperada se calculó automáticamente.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
     },

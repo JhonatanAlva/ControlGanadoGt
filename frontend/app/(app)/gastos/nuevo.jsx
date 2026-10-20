@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { ScrollView, View, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { gastosService } from '../../../services/gastosService';
-import { fincasService } from '../../../services/fincasService';
-import { animalesService } from '../../../services/animalesService';
+import { gastosRepo } from '../../../offline/gastosRepo';
+import { fincasRepo } from '../../../offline/fincasRepo';
+import * as animalesRepo from '../../../offline/animalesRepo';
 import { CATEGORIAS_GASTO, TIPOS_MOVIMIENTO } from '../../../constants/enums';
 import useFincaStore from '../../../stores/fincaStore';
 import ScreenHeader from '../../../components/ScreenHeader';
@@ -21,14 +21,12 @@ export default function NuevoGastoScreen() {
 
   const { data: fincas } = useQuery({
     queryKey: ['fincas'],
-    queryFn: () => fincasService.listar(),
-    select: (res) => res.data.data.fincas,
+    queryFn: () => fincasRepo.listar(),
   });
 
   const { data: animales } = useQuery({
     queryKey: ['animales', { estado: 'Activo' }],
-    queryFn: () => animalesService.listar({ estado: 'Activo', limit: 100 }),
-    select: (res) => res.data.data,
+    queryFn: () => animalesRepo.listar({ estado: 'Activo', limit: 100 }),
   });
 
   const [form, setForm] = useState({
@@ -39,7 +37,7 @@ export default function NuevoGastoScreen() {
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
 
   const mutation = useMutation({
-    mutationFn: () => gastosService.crear({
+    mutationFn: () => gastosRepo.crear({
       tipo: form.tipo,
       categoria: form.categoria,
       descripcion: form.descripcion.trim() || undefined,
@@ -51,10 +49,12 @@ export default function NuevoGastoScreen() {
       factura: form.factura.trim() || undefined,
       notas: form.notas.trim() || undefined,
     }),
-    onSuccess: async () => {
+    onSuccess: async (gasto) => {
       await queryClient.invalidateQueries({ queryKey: ['gastos'] });
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      Alert.alert('Listo', 'Movimiento registrado.', [{ text: 'OK', onPress: () => router.back() }]);
+      Alert.alert('Listo', gasto._local ? 'Guardado sin conexión. Se enviará al servidor cuando vuelva la señal.' : 'Movimiento registrado.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
     },
     onError: (err) => Alert.alert('Error', err.mensaje || 'No se pudo registrar el movimiento.'),
   });

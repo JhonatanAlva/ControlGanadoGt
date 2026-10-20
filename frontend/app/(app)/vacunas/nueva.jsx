@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { ScrollView, View, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { vacunasService } from '../../../services/vacunasService';
-import { animalesService } from '../../../services/animalesService';
+import { vacunasRepo } from '../../../offline/vacunasRepo';
+import * as animalesRepo from '../../../offline/animalesRepo';
 import { TIPOS_VACUNA, VIAS_APLICACION } from '../../../constants/enums';
 import ScreenHeader from '../../../components/ScreenHeader';
 import FormInput from '../../../components/FormInput';
@@ -18,8 +18,7 @@ export default function NuevaVacunaScreen() {
 
   const { data: animales } = useQuery({
     queryKey: ['animales', { estado: 'Activo', search: '' }],
-    queryFn: () => animalesService.listar({ estado: 'Activo', limit: 100 }),
-    select: (res) => res.data.data,
+    queryFn: () => animalesRepo.listar({ estado: 'Activo', limit: 100 }),
   });
 
   const [form, setForm] = useState({
@@ -30,7 +29,7 @@ export default function NuevaVacunaScreen() {
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
 
   const mutation = useMutation({
-    mutationFn: () => vacunasService.registrar({
+    mutationFn: () => vacunasRepo.crear({
       animal_id: form.animal_id,
       tipo_vacuna: form.tipo_vacuna,
       nombre_producto: form.nombre_producto.trim() || undefined,
@@ -43,10 +42,12 @@ export default function NuevaVacunaScreen() {
       costo: form.costo ? parseFloat(form.costo) : undefined,
       notas: form.notas.trim() || undefined,
     }),
-    onSuccess: async () => {
+    onSuccess: async (vacuna) => {
       await queryClient.invalidateQueries({ queryKey: ['vacunas'] });
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      Alert.alert('Listo', 'Vacuna registrada.', [{ text: 'OK', onPress: () => router.back() }]);
+      Alert.alert('Listo', vacuna._local ? 'Guardado sin conexión. Se enviará al servidor cuando vuelva la señal.' : 'Vacuna registrada.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
     },
     onError: (err) => Alert.alert('Error', err.mensaje || 'No se pudo registrar la vacuna.'),
   });

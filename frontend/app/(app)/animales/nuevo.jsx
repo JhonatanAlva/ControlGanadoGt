@@ -4,7 +4,7 @@ import { ScrollView, Alert, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as animalesRepo from '../../../offline/animalesRepo';
-import { fincasService } from '../../../services/fincasService';
+import { fincasRepo } from '../../../offline/fincasRepo';
 import useFincaStore from '../../../stores/fincaStore';
 import { RAZAS, SEXOS, TIPOS_ANIMAL, PROPOSITOS } from '../../../constants/enums';
 import ScreenHeader from '../../../components/ScreenHeader';
@@ -22,8 +22,7 @@ export default function NuevoAnimalScreen() {
 
   const { data: fincas } = useQuery({
     queryKey: ['fincas'],
-    queryFn: () => fincasService.listar(),
-    select: (res) => res.data.data.fincas,
+    queryFn: () => fincasRepo.listar(),
   });
 
   const { data: hembras } = useQuery({

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { fincasService } from '../services/fincasService';
+import { fincasRepo } from '../offline/fincasRepo';
 import useFincaStore from '../stores/fincaStore';
 import { COLORS } from '../constants/colors';
 
@@ -14,16 +14,16 @@ export default function FincaActivaBar() {
 
   const { data: fincas, isSuccess } = useQuery({
     queryKey: ['fincas'],
-    queryFn: () => fincasService.listar(),
-    select: (res) => res.data.data.fincas,
+    queryFn: () => fincasRepo.listar(),
   });
 
   const finca = fincas?.find((f) => f.id === fincaActivaId);
 
-  // La finca guardada ya no existe (se eliminó desde otro dispositivo): volver a "todas"
+  // La finca guardada ya no existe (se eliminó desde otro dispositivo): volver a "todas".
+  // Con la lista vacía no se decide nada (puede ser caché offline aún sin datos).
   useEffect(() => {
-    if (isSuccess && fincaActivaId && !finca) setFincaActiva(null);
-  }, [isSuccess, fincaActivaId, finca]);
+    if (isSuccess && fincas.length > 0 && fincaActivaId && !finca) setFincaActiva(null);
+  }, [isSuccess, fincas, fincaActivaId, finca]);
 
   // Con una sola finca no hay nada que elegir
   if (!fincas || fincas.length < 2) return null;

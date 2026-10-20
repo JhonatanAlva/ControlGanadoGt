@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fincasService } from '../../../services/fincasService';
+import { fincasRepo } from '../../../offline/fincasRepo';
 import useFincaStore from '../../../stores/fincaStore';
 import { COLORS } from '../../../constants/colors';
 
@@ -17,8 +17,7 @@ export default function FincasScreen() {
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['fincas'],
-    queryFn: () => fincasService.listar(),
-    select: (res) => res.data.data.fincas,
+    queryFn: () => fincasRepo.listar(),
   });
 
   const [refreshing, setRefreshing] = useState(false);

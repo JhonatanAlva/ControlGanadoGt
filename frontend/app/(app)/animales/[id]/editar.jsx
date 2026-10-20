@@ -4,7 +4,7 @@ import { ScrollView, View, Text, ActivityIndicator, Alert, StyleSheet } from 're
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as animalesRepo from '../../../../offline/animalesRepo';
-import { fincasService } from '../../../../services/fincasService';
+import { fincasRepo } from '../../../../offline/fincasRepo';
 import { RAZAS, SEXOS, TIPOS_ANIMAL, PROPOSITOS } from '../../../../constants/enums';
 import { COLORS } from '../../../../constants/colors';
 import ScreenHeader from '../../../../components/ScreenHeader';
@@ -27,8 +27,7 @@ export default function EditarAnimalScreen() {
 
   const { data: fincas } = useQuery({
     queryKey: ['fincas'],
-    queryFn: () => fincasService.listar(),
-    select: (res) => res.data.data.fincas,
+    queryFn: () => fincasRepo.listar(),
   });
 
   const { data: hembras } = useQuery({

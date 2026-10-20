@@ -61,18 +61,27 @@ const leerLocal = async (filtros = {}) => {
 };
 
 // ── Lectura ──────────────────────────────────────────────────────────────────
-export const listar = async (filtros = {}) => {
+export const listarConTotal = async (filtros = {}) => {
   if (await estaConectado()) {
     try {
       const res = await animalesService.listar(filtros);
       const animales = res.data.data;
       await guardarLocalLote(animales);
-      return animales;
+      return { items: animales, total: res.data.meta?.total ?? animales.length };
     } catch {
-      return leerLocal(filtros);
+      // cae a caché local
     }
   }
-  return leerLocal(filtros);
+  const animales = await leerLocal(filtros);
+  return { items: animales, total: animales.length };
+};
+
+export const listar = async (filtros = {}) => (await listarConTotal(filtros)).items;
+
+// Mapa id → animal de la caché local, para completar datos de vacunas/partos/gastos sin conexión
+export const leerAnimalesLocales = async () => {
+  const animales = await leerLocal();
+  return new Map(animales.map((a) => [a.id, a]));
 };
 
 export const obtener = async (id) => {

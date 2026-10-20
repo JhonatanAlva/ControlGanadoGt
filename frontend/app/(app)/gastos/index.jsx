@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { gastosService } from '../../../services/gastosService';
+import { gastosRepo } from '../../../offline/gastosRepo';
 import useAuthStore from '../../../stores/authStore';
 import { COLORS } from '../../../constants/colors';
 import { formatQ, formatFecha } from '../../../utils/format';
@@ -14,6 +14,7 @@ import { exportarPDF, htmlReporteGastos } from '../../../utils/exportPdf';
 import ScreenHeader from '../../../components/ScreenHeader';
 import useFincaStore from '../../../stores/fincaStore';
 import FincaActivaBar from '../../../components/FincaActivaBar';
+import SyncBanner from '../../../components/SyncBanner';
 import ChipPicker from '../../../components/ChipPicker';
 import BarList from '../../../components/BarList';
 import PrimaryButton from '../../../components/PrimaryButton';
@@ -35,25 +36,23 @@ export default function GastosScreen() {
 
   const resumenQuery = useQuery({
     queryKey: ['gastos', 'resumen-mensual', anio, fincaActivaId],
-    queryFn: () => gastosService.resumenMensual(anio, fincaActivaId),
-    select: (res) => res.data.data,
+    queryFn: () => gastosRepo.resumenMensual(anio, fincaActivaId),
   });
 
   const categoriaQuery = useQuery({
     queryKey: ['gastos', 'resumen-categoria', anio, fincaActivaId],
-    queryFn: () => gastosService.resumenCategoria({ fecha_desde: `${anio}-01-01`, ...filtroFinca }),
-    select: (res) => res.data.data.categorias,
+    queryFn: () => gastosRepo.resumenCategoria({ fecha_desde: `${anio}-01-01`, ...filtroFinca }),
+    select: (data) => data.categorias,
   });
 
   const listQuery = useQuery({
     queryKey: ['gastos', 'lista', { tipo, categoria, fincaActivaId }],
-    queryFn: () => gastosService.listar({
+    queryFn: () => gastosRepo.listar({
       ...filtroFinca,
       ...(tipo && { tipo }),
       ...(categoria && { categoria }),
       limit: 100,
     }),
-    select: (res) => res.data.data,
   });
 
   const [refreshing, setRefreshing] = useState(false);
@@ -105,6 +104,7 @@ export default function GastosScreen() {
         onRightPress={() => router.push('/(app)/gastos/nuevo')}
       />
       <FincaActivaBar />
+      <SyncBanner />
 
       <ScrollView
         style={{ flex: 1 }}

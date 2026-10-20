@@ -110,7 +110,26 @@ export const initDb = async () => {
       intentos INTEGER NOT NULL DEFAULT 0,
       error TEXT
     );
+
+    -- Caché genérica para vacunas, partos, gastos y fincas (ver offline/crearRepoOffline.js)
+    CREATE TABLE IF NOT EXISTS registros (
+      entidad TEXT NOT NULL,
+      id TEXT NOT NULL,
+      usuario_id TEXT,
+      datos TEXT NOT NULL,
+      pendiente_sync INTEGER NOT NULL DEFAULT 0,
+      eliminado INTEGER NOT NULL DEFAULT 0,
+      actualizado_en TEXT,
+      PRIMARY KEY (entidad, id)
+    );
   `);
+
+  // Mutaciones que el servidor rechazó (4xx): no se reintentan, el usuario decide descartarlas
+  const columnas = await db.getAllAsync('PRAGMA table_info(pending_mutations)');
+  if (!columnas.some((c) => c.name === 'rechazada')) {
+    await db.execAsync('ALTER TABLE pending_mutations ADD COLUMN rechazada INTEGER NOT NULL DEFAULT 0');
+  }
+
   await migrarBaseVieja(db);
   return db;
 };
@@ -122,5 +141,5 @@ export const initDb = async () => {
 // mutaciones pendientes de sincronizar de otra sesión.
 export const limpiarCacheLocal = async () => {
   const db = await getDb();
-  await db.execAsync('DELETE FROM animales; DELETE FROM pending_mutations;');
+  await db.execAsync('DELETE FROM animales; DELETE FROM registros; DELETE FROM pending_mutations;');
 };

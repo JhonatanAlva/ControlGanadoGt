@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { ScrollView, View, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { gastosService } from '../../../services/gastosService';
+import { gastosRepo } from '../../../offline/gastosRepo';
 import { CATEGORIAS_GASTO, TIPOS_MOVIMIENTO } from '../../../constants/enums';
 import { COLORS } from '../../../constants/colors';
 import ScreenHeader from '../../../components/ScreenHeader';
@@ -18,8 +18,7 @@ export default function DetalleGastoScreen() {
 
   const { data: gasto, isLoading } = useQuery({
     queryKey: ['gastos', id],
-    queryFn: () => gastosService.obtener(id),
-    select: (res) => res.data.data.gasto,
+    queryFn: () => gastosRepo.obtener(id),
   });
 
   const [form, setForm] = useState(null);
@@ -46,7 +45,7 @@ export default function DetalleGastoScreen() {
   };
 
   const actualizarMutation = useMutation({
-    mutationFn: () => gastosService.actualizar(id, {
+    mutationFn: () => gastosRepo.actualizar(id, {
       tipo: form.tipo,
       categoria: form.categoria,
       descripcion: form.descripcion.trim() || undefined,
@@ -56,15 +55,17 @@ export default function DetalleGastoScreen() {
       factura: form.factura.trim() || undefined,
       notas: form.notas.trim() || undefined,
     }),
-    onSuccess: async () => {
+    onSuccess: async (gasto) => {
       await invalidar();
-      Alert.alert('Listo', 'Movimiento actualizado.', [{ text: 'OK', onPress: () => router.back() }]);
+      Alert.alert('Listo', gasto._local ? 'Guardado sin conexión. Se enviará al servidor cuando vuelva la señal.' : 'Movimiento actualizado.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
     },
     onError: (err) => Alert.alert('Error', err.mensaje || 'No se pudo actualizar el movimiento.'),
   });
 
   const eliminarMutation = useMutation({
-    mutationFn: () => gastosService.eliminar(id),
+    mutationFn: () => gastosRepo.eliminar(id),
     onSuccess: async () => {
       await invalidar();
       router.back();

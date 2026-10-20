@@ -6,12 +6,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { partosService } from '../../../services/partosService';
+import { partosRepo } from '../../../offline/partosRepo';
 import { COLORS } from '../../../constants/colors';
 import { formatFecha } from '../../../utils/format';
 import ScreenHeader from '../../../components/ScreenHeader';
 import useFincaStore from '../../../stores/fincaStore';
 import FincaActivaBar from '../../../components/FincaActivaBar';
+import SyncBanner from '../../../components/SyncBanner';
 import Badge from '../../../components/Badge';
 
 const ESTADO_COLOR = {
@@ -30,12 +31,11 @@ export default function PartosScreen() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['partos', { soloProximos, fincaActivaId }],
-    queryFn: () => partosService.listar({
+    queryFn: () => partosRepo.listar({
       ...(soloProximos && { proximos: 'true' }),
       ...(fincaActivaId && { finca_id: fincaActivaId }),
       limit: 100,
     }),
-    select: (res) => res.data.data,
   });
 
   const [refreshing, setRefreshing] = useState(false);
@@ -55,6 +55,7 @@ export default function PartosScreen() {
         onRightPress={() => router.push('/(app)/partos/nuevo')}
       />
       <FincaActivaBar />
+      <SyncBanner />
 
       <View style={styles.filtros}>
         <TouchableOpacity

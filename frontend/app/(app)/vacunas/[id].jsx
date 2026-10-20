@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { ScrollView, View, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { vacunasService } from '../../../services/vacunasService';
+import { vacunasRepo } from '../../../offline/vacunasRepo';
 import { TIPOS_VACUNA, VIAS_APLICACION } from '../../../constants/enums';
 import { COLORS } from '../../../constants/colors';
 import ScreenHeader from '../../../components/ScreenHeader';
@@ -18,8 +18,7 @@ export default function DetalleVacunaScreen() {
 
   const { data: vacuna, isLoading } = useQuery({
     queryKey: ['vacunas', id],
-    queryFn: () => vacunasService.obtener(id),
-    select: (res) => res.data.data.vacuna,
+    queryFn: () => vacunasRepo.obtener(id),
   });
 
   const [form, setForm] = useState(null);
@@ -48,7 +47,7 @@ export default function DetalleVacunaScreen() {
   };
 
   const actualizarMutation = useMutation({
-    mutationFn: () => vacunasService.actualizar(id, {
+    mutationFn: () => vacunasRepo.actualizar(id, {
       tipo_vacuna: form.tipo_vacuna,
       nombre_producto: form.nombre_producto.trim() || undefined,
       lote: form.lote.trim() || undefined,
@@ -60,15 +59,17 @@ export default function DetalleVacunaScreen() {
       costo: form.costo ? parseFloat(form.costo) : undefined,
       notas: form.notas.trim() || undefined,
     }),
-    onSuccess: async () => {
+    onSuccess: async (vacuna) => {
       await invalidar();
-      Alert.alert('Listo', 'Vacuna actualizada.', [{ text: 'OK', onPress: () => router.back() }]);
+      Alert.alert('Listo', vacuna._local ? 'Guardado sin conexión. Se enviará al servidor cuando vuelva la señal.' : 'Vacuna actualizada.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
     },
     onError: (err) => Alert.alert('Error', err.mensaje || 'No se pudo actualizar la vacuna.'),
   });
 
   const eliminarMutation = useMutation({
-    mutationFn: () => vacunasService.eliminar(id),
+    mutationFn: () => vacunasRepo.eliminar(id),
     onSuccess: async () => {
       await invalidar();
       router.back();

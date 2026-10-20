@@ -7,7 +7,8 @@ import useAuthStore from '../stores/authStore';
 import useOnboardingStore from '../stores/onboardingStore';
 import { queryClient } from '../services/queryClient';
 import { initDb } from '../db/database';
-import { iniciarSyncAutomatico, procesarCola } from '../offline/syncManager';
+import { iniciarSyncAutomatico, procesarCola, suscribirseASync } from '../offline/syncManager';
+import '../offline'; // registra la sincronización de vacunas, partos, gastos y fincas
 import { COLORS } from '../constants/colors';
 
 function AuthGuard() {
@@ -22,6 +23,10 @@ function AuthGuard() {
     initDb().then(() => {
       iniciarSyncAutomatico();
       procesarCola(); // por si quedaron cambios pendientes de una sesión anterior
+    });
+    // Al terminar de sincronizar, recargar pantallas para ver ids y datos reales del servidor
+    return suscribirseASync((evento) => {
+      if (evento.tipo === 'terminado' && evento.procesadas > 0) queryClient.invalidateQueries();
     });
   }, []);
 
