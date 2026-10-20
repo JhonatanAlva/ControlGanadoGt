@@ -20,10 +20,12 @@ function AuthGuard() {
   useEffect(() => {
     inicializar();
     inicializarOnboarding();
-    initDb().then(() => {
-      iniciarSyncAutomatico();
-      procesarCola(); // por si quedaron cambios pendientes de una sesión anterior
-    });
+    initDb()
+      .then(() => {
+        iniciarSyncAutomatico();
+        procesarCola(); // por si quedaron cambios pendientes de una sesión anterior
+      })
+      .catch((err) => console.warn('[db] No se pudo abrir la base local:', err?.message));
     // Al terminar de sincronizar, recargar pantallas para ver ids y datos reales del servidor
     return suscribirseASync((evento) => {
       if (evento.tipo === 'terminado' && evento.procesadas > 0) queryClient.invalidateQueries();

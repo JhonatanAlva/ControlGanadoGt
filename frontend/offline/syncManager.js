@@ -7,6 +7,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { getDb } from '../db/database';
 import { animalesService } from '../services/animalesService';
 import useAuthStore from '../stores/authStore';
+import useFincaStore from '../stores/fincaStore';
 
 let sincronizando = false;
 const listeners = new Set();
@@ -124,6 +125,10 @@ export const remapearId = async (entidad, idLocal, idReal) => {
       [idLocal, idReal, idLocal],
     );
   });
+
+  if (useFincaStore.getState().fincaActivaId === idLocal) {
+    await useFincaStore.getState().setFincaActiva(idReal);
+  }
 };
 
 // Cuando ya no quedan cambios en cola para un registro, deja de estar "pendiente"
@@ -203,6 +208,9 @@ export const procesarCola = async () => {
         if (!esRechazo(status)) break;
       }
     }
+  } catch (err) {
+    // Fallo de la base local: se reintenta en el próximo cambio de red
+    console.warn('[sync] No se pudo procesar la cola:', err?.message);
   } finally {
     sincronizando = false;
     notificar({ tipo: 'terminado', procesadas });

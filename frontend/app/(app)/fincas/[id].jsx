@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fincasService } from '../../../services/fincasService';
+import { fincasRepo } from '../../../offline/fincasRepo';
 import useFincaStore from '../../../stores/fincaStore';
 import { COLORS } from '../../../constants/colors';
 import { REGIONES_GUATEMALA } from '../../../constants/enums';
@@ -19,8 +19,7 @@ export default function EditarFincaScreen() {
 
   const { data: finca, isLoading } = useQuery({
     queryKey: ['fincas', id],
-    queryFn: () => fincasService.obtener(id),
-    select: (res) => res.data.data.finca,
+    queryFn: () => fincasRepo.obtener(id),
   });
 
   const [form, setForm] = useState(null);
@@ -39,22 +38,24 @@ export default function EditarFincaScreen() {
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
 
   const actualizarMutation = useMutation({
-    mutationFn: () => fincasService.actualizar(id, {
+    mutationFn: () => fincasRepo.actualizar(id, {
       nombre: form.nombre.trim(),
       ubicacion: form.ubicacion.trim() || undefined,
       region: form.region || undefined,
       hectareas: form.hectareas ? parseFloat(form.hectareas) : undefined,
       notas: form.notas.trim() || undefined,
     }),
-    onSuccess: async () => {
+    onSuccess: async (actualizada) => {
       await queryClient.invalidateQueries({ queryKey: ['fincas'] });
-      Alert.alert('Listo', 'Finca actualizada.', [{ text: 'OK', onPress: () => router.back() }]);
+      Alert.alert('Listo', actualizada._local ? 'Guardado sin conexión. Se enviará al servidor cuando vuelva la señal.' : 'Finca actualizada.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
     },
     onError: (err) => Alert.alert('Error', err.mensaje || 'No se pudo actualizar la finca.'),
   });
 
   const eliminarMutation = useMutation({
-    mutationFn: () => fincasService.eliminar(id),
+    mutationFn: () => fincasRepo.eliminar(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['fincas'] });
       if (fincaActivaId === id) await setFincaActiva(null);

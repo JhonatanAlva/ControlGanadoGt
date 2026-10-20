@@ -34,7 +34,9 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && teniaToken) {
       await alExpirarSesion?.();
     }
-    const mensaje = error.response?.data?.message || 'Error de conexión';
+    const mensaje = error.response?.data?.message
+      || (error.response ? 'Ocurrió un error en el servidor. Intenta de nuevo.'
+        : 'Sin conexión a internet. Esta acción necesita señal para completarse.');
     return Promise.reject({ ...error, mensaje });
   }
 );

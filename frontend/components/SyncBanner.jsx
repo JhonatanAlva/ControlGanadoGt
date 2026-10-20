@@ -17,8 +17,12 @@ export default function SyncBanner() {
 
   useEffect(() => {
     const cargar = async () => {
-      setPendientes(await contarPendientes());
-      setRechazadas(await listarRechazadas());
+      try {
+        setPendientes(await contarPendientes());
+        setRechazadas(await listarRechazadas());
+      } catch {
+        // Base local no disponible: el aviso simplemente no se muestra
+      }
     };
     cargar();
     return suscribirseASync(cargar);

@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { fincasService } from '../../../services/fincasService';
+import { fincasRepo } from '../../../offline/fincasRepo';
 import useFincaStore from '../../../stores/fincaStore';
 import { COLORS } from '../../../constants/colors';
 import { REGIONES_GUATEMALA } from '../../../constants/enums';
@@ -23,17 +23,17 @@ export default function NuevaFincaScreen() {
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
 
   const mutation = useMutation({
-    mutationFn: () => fincasService.crear({
+    mutationFn: () => fincasRepo.crear({
       nombre: form.nombre.trim(),
       ubicacion: form.ubicacion.trim() || undefined,
       region: form.region || undefined,
       hectareas: form.hectareas ? parseFloat(form.hectareas) : undefined,
       notas: form.notas.trim() || undefined,
     }),
-    onSuccess: async (res) => {
+    onSuccess: async (finca) => {
       await queryClient.invalidateQueries({ queryKey: ['fincas'] });
-      await setFincaActiva(res.data.data.finca.id);
-      Alert.alert('Listo', 'Finca registrada.', [
+      await setFincaActiva(finca.id);
+      Alert.alert('Listo', finca._local ? 'Guardado sin conexión. Se enviará al servidor cuando vuelva la señal.' : 'Finca registrada.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
     },

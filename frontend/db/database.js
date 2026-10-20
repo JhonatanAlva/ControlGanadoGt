@@ -18,6 +18,11 @@ const MIGRADA_KEY = 'db_migrada_v1';
 
 let dbPromise = null;
 
+// Conexión propia siempre: con la caché nativa de expo-sqlite, tras una recarga de la app
+// se reutiliza la conexión de la versión anterior, y cuando el recolector de basura la libera
+// todas las consultas fallan con "NativeDatabase.prepareAsync ... NullPointerException".
+const OPCIONES = { useNewConnection: true };
+
 const obtenerClave = async () => {
   let clave = await SecureStore.getItemAsync(CLAVE_KEY);
   if (!clave) {
@@ -29,7 +34,7 @@ const obtenerClave = async () => {
 };
 
 const abrir = async () => {
-  const db = await SQLite.openDatabaseAsync(DB_NOMBRE);
+  const db = await SQLite.openDatabaseAsync(DB_NOMBRE, OPCIONES);
   // Debe ser la primera instrucción sobre la conexión; la clave es hex, sin comillas internas
   await db.execAsync(`PRAGMA key = "x'${await obtenerClave()}'"`);
 
@@ -41,7 +46,13 @@ const abrir = async () => {
 };
 
 export const getDb = () => {
-  if (!dbPromise) dbPromise = abrir();
+  if (!dbPromise) {
+    // Si falla al abrir, el próximo intento vuelve a probar en lugar de quedarse con el error
+    dbPromise = abrir().catch((err) => {
+      dbPromise = null;
+      throw err;
+    });
+  }
   return dbPromise;
 };
 
@@ -51,7 +62,7 @@ const migrarBaseVieja = async (db) => {
   if (await SecureStore.getItemAsync(MIGRADA_KEY)) return;
 
   try {
-    const vieja = await SQLite.openDatabaseAsync(DB_VIEJA);
+    const vieja = await SQLite.openDatabaseAsync(DB_VIEJA, OPCIONES);
     const tablas = await vieja.getAllAsync(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('animales', 'pending_mutations')",
     );

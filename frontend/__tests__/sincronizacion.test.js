@@ -88,14 +88,18 @@ jest.mock('../services/gastosService', () => {
   });
   return { gastosService: { ...base, resumenMensual: jest.fn(), resumenCategoria: jest.fn() } };
 });
-jest.mock('../services/fincasService', () => ({
-  fincasService: {
-    listar: jest.fn(async () => {
-      mockExigirRed();
-      return { data: { data: { fincas: [...mockServidor.fincas.values()] } } };
-    }),
-  },
-}));
+jest.mock('../services/fincasService', () => {
+  const base = mockCrud('fincas', 'finca');
+  return {
+    fincasService: {
+      ...base,
+      listar: jest.fn(async () => {
+        mockExigirRed();
+        return { data: { data: { fincas: [...mockServidor.fincas.values()] } } };
+      }),
+    },
+  };
+});
 
 // ── Módulos bajo prueba ──────────────────────────────────────────────────────
 const { initDb, getDb } = require('../db/database');
@@ -108,6 +112,7 @@ const {
   procesarCola, contarPendientes, listarRechazadas, descartarRechazadas,
 } = require('../offline/syncManager');
 const { hoyISO, sumarDias } = require('../offline/fechas');
+const useFincaStore = require('../stores/fincaStore').default;
 
 const sinIdsLocales = (obj) => !JSON.stringify(obj).includes('local_');
 
@@ -265,6 +270,25 @@ describe('caché', () => {
 
     global.conectado = false;
     expect((await vacunasRepo.listar()).some((v) => v.id === idVacuna)).toBe(false);
+  });
+
+  test('una finca creada sin señal se sincroniza con sus animales y sigue activa', async () => {
+    global.conectado = false;
+    const finca = await fincasRepo.crear({ nombre: 'Finca El Patrón', hectareas: 11 });
+    expect(finca.id).toMatch(/^local_/);
+    expect(finca.total_animales).toBe(0);
+    await useFincaStore.getState().setFincaActiva(finca.id);
+    await animalesRepo.crear({ numero_arete: 'P-1', raza: 'Angus', sexo: 'Macho', tipo: 'Toro', finca_id: finca.id });
+
+    global.conectado = true;
+    await procesarCola();
+
+    const fincaReal = [...mockServidor.fincas.values()].find((f) => f.nombre === 'Finca El Patrón');
+    const toro = [...mockServidor.animales.values()].find((a) => a.numero_arete === 'P-1');
+    expect(toro.finca_id).toBe(fincaReal.id);
+    expect(useFincaStore.getState().fincaActivaId).toBe(fincaReal.id);
+    mockServidor.fincas.delete(fincaReal.id); // dejar el servidor como estaba para la siguiente prueba
+    await fincasRepo.listar();
   });
 
   test('las fincas están disponibles sin señal', async () => {

@@ -1,6 +1,4 @@
 // offline/fincasRepo.js
-// Solo lectura sin conexión: las fincas se crean y editan con señal (es poco frecuente),
-// pero la lista hace falta offline para los formularios y el filtro de finca activa.
 import { fincasService } from '../services/fincasService';
 import { crearRepoOffline } from './crearRepoOffline';
 
@@ -9,7 +7,9 @@ const repo = crearRepoOffline({
   service: fincasService,
   clave: 'finca',
   extraerLista: (res) => res.data.data.fincas,
+  // Una finca creada sin conexión todavía no tiene animales contados por el servidor
+  completar: async (fincas) => fincas.map((f) => ({ ...f, total_animales: f.total_animales ?? 0 })),
   ordenar: (a, b) => (a.nombre || '').localeCompare(b.nombre || ''),
 });
 
-export const fincasRepo = { listar: () => repo.listar() };
+export const fincasRepo = repo;
