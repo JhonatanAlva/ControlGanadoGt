@@ -34,7 +34,7 @@ const registrarServicio = async (req, res, next) => {
 
 const registrarResultado = async (req, res, next) => {
   try {
-    const resultado = await service.registrarResultado(req.params.id, req.user.id, req.body);
+    const resultado = await service.registrarResultado(req.params.id, req.user.id, req.body, req.user.plan);
     created(res, resultado,
       resultado.cria_creada
         ? 'Parto registrado. La cría fue creada automáticamente como nuevo animal.'

@@ -50,8 +50,8 @@ const actualizarPerfil = async (req, res, next) => {
 
 const cambiarPassword = async (req, res, next) => {
   try {
-    await service.cambiarPassword(req.user.id, req.body);
-    ok(res, null, "Contraseña actualizada.");
+    const { token } = await service.cambiarPassword(req.user.id, req.body);
+    ok(res, { token }, "Contraseña actualizada. Se cerró la sesión en tus otros dispositivos.");
   } catch (err) {
     next(err);
   }

@@ -6,13 +6,21 @@
 const { z } = require("zod");
 const { REGIONES_GUATEMALA } = require("../../config/constants");
 
+// bcrypt solo usa los primeros 72 bytes, por eso el máximo
+const passwordSegura = z
+  .string()
+  .min(8, "La contraseña debe tener al menos 8 caracteres")
+  .max(72, "La contraseña no puede superar 72 caracteres")
+  .regex(/[A-Za-z]/, "La contraseña debe incluir al menos una letra")
+  .regex(/[0-9]/, "La contraseña debe incluir al menos un número");
+
 const registroSchema = z.object({
   nombre: z
     .string()
     .min(2, "El nombre debe tener al menos 2 caracteres")
     .max(150),
   email: z.string().email("Email inválido").toLowerCase(),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  password: passwordSegura,
   telefono: z.string().max(20).optional(),
   region: z.enum(REGIONES_GUATEMALA).optional(),
   whatsapp: z.string().max(20).optional(),
@@ -20,7 +28,7 @@ const registroSchema = z.object({
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido").toLowerCase(),
-  password: z.string().min(1, "La contraseña es requerida"),
+  password: z.string().min(1, "La contraseña es requerida").max(200),
 });
 
 const actualizarPerfilSchema = z.object({
@@ -32,7 +40,7 @@ const actualizarPerfilSchema = z.object({
 
 const cambiarPasswordSchema = z.object({
   passwordActual: z.string().min(1, "La contraseña actual es requerida"),
-  passwordNueva: z.string().min(6, "La nueva contraseña debe tener al menos 6 caracteres"),
+  passwordNueva: passwordSegura,
 });
 
 module.exports = {

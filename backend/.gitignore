@@ -10,6 +10,7 @@ build/
 ###################
 .env
 .env.*
+!.env.example
 
 ########
 # Logs #
@@ -40,5 +41,3 @@ Thumbs.db
 *.pid
 *.seed
 *.pid.lock
-app.js
-tests/

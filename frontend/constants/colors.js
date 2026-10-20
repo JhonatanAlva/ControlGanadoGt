@@ -18,6 +18,11 @@ export const COLORS = {
   gray700:     '#2d3748',
 };
 
-export const API_URL = 'http://10.0.2.2:3000/api/v1';
-// 10.0.2.2 = localhost desde el emulador Android
-// Cambia por tu IP si usas dispositivo físico: http://192.168.1.X:3000/api/v1
+// Se configura con EXPO_PUBLIC_API_URL en frontend/.env (ver .env.example).
+// Por defecto: 10.0.2.2 = localhost de tu PC visto desde el emulador Android.
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000/api/v1';
+
+// Sin HTTPS, el token y los datos de los ganaderos viajan legibles por la red
+if (!__DEV__ && !API_URL.startsWith('https://')) {
+  throw new Error('En producción EXPO_PUBLIC_API_URL debe usar https://');
+}

@@ -7,6 +7,7 @@ import { authService } from '../../services/authService';
 import useAuthStore from '../../stores/authStore';
 import { COLORS } from '../../constants/colors';
 import { REGIONES_GUATEMALA } from '../../constants/enums';
+import { validarPassword } from '../../utils/password';
 import ScreenHeader from '../../components/ScreenHeader';
 import FormInput from '../../components/FormInput';
 import ChipPicker from '../../components/ChipPicker';
@@ -15,7 +16,7 @@ import Badge from '../../components/Badge';
 
 export default function PerfilScreen() {
   const router = useRouter();
-  const { usuario, actualizarUsuario, logout } = useAuthStore();
+  const { usuario, actualizarUsuario, guardarToken, logout } = useAuthStore();
 
   const [form, setForm] = useState(null);
   useEffect(() => {
@@ -52,9 +53,11 @@ export default function PerfilScreen() {
       passwordActual: passwordForm.actual,
       passwordNueva: passwordForm.nueva,
     }),
-    onSuccess: () => {
+    onSuccess: async (res) => {
+      // El backend invalida los tokens anteriores y entrega uno nuevo para este dispositivo
+      await guardarToken(res.data.data.token);
       setPasswordForm({ actual: '', nueva: '', confirmar: '' });
-      Alert.alert('Listo', 'Contraseña actualizada.');
+      Alert.alert('Listo', 'Contraseña actualizada. Se cerró la sesión en tus otros dispositivos.');
     },
     onError: (err) => Alert.alert('Error', err.mensaje || 'No se pudo cambiar la contraseña.'),
   });
@@ -64,8 +67,9 @@ export default function PerfilScreen() {
       Alert.alert('Campos requeridos', 'Ingresa tu contraseña actual y la nueva.');
       return;
     }
-    if (passwordForm.nueva.length < 6) {
-      Alert.alert('Contraseña corta', 'La nueva contraseña debe tener al menos 6 caracteres.');
+    const errorPassword = validarPassword(passwordForm.nueva);
+    if (errorPassword) {
+      Alert.alert('Contraseña insegura', errorPassword);
       return;
     }
     if (passwordForm.nueva !== passwordForm.confirmar) {

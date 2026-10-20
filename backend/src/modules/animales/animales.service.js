@@ -10,6 +10,17 @@ const AppError = require("../../utils/AppError");
 const { calcularEdad, gananciaDiariaWeight } = require("../../utils/calculos");
 const { LIMITES_FREE } = require("../../config/constants");
 const cloudinary = require("../../config/cloudinary");
+const { verificarFinca, verificarAnimal } = require("../../utils/propiedad");
+
+// Solo caracteres seguros para el public_id de Cloudinary (evita "/" o "..")
+const idArchivo = (texto) => String(texto).replace(/[^A-Za-z0-9_-]/g, "_");
+
+// Las referencias a fincas y padres deben ser del mismo usuario
+const verificarReferencias = async (usuarioId, datos) => {
+  await verificarFinca(datos.finca_id, usuarioId);
+  await verificarAnimal(datos.madre_id, usuarioId, { sexo: "Hembra", etiqueta: "Madre" });
+  await verificarAnimal(datos.padre_id, usuarioId, { sexo: "Macho", etiqueta: "Padre" });
+};
 
 // ── Listar animales ──────────────────────────────────────────────────────────
 const listar = async (usuarioId, filtros) => {
@@ -54,12 +65,14 @@ const crear = async (usuarioId, datos, plan, archivo) => {
       `El arete ${datos.numero_arete} ya está registrado.`,
     );
 
+  await verificarReferencias(usuarioId, datos);
+
   // Subir foto a Cloudinary si viene archivo
   let foto_url = null;
   if (archivo) {
     foto_url = await cloudinary.upload(archivo.buffer, {
       folder: `ganaderia-gt/${usuarioId}/animales`,
-      public_id: datos.numero_arete.replace(/\s/g, "_"),
+      public_id: idArchivo(datos.numero_arete),
     });
   }
 
@@ -75,12 +88,17 @@ const crear = async (usuarioId, datos, plan, archivo) => {
 const actualizar = async (id, usuarioId, datos, archivo) => {
   const existe = await repo.findById(id, usuarioId);
   if (!existe) throw AppError.notFound("Animal no encontrado.");
+  if (datos.madre_id === id || datos.padre_id === id) {
+    throw AppError.badRequest("Un animal no puede ser su propio padre o madre.");
+  }
+
+  await verificarReferencias(usuarioId, datos);
 
   let foto_url = undefined;
   if (archivo) {
     foto_url = await cloudinary.upload(archivo.buffer, {
       folder: `ganaderia-gt/${usuarioId}/animales`,
-      public_id: `${existe.numero_arete.replace(/\s/g, "_")}_${Date.now()}`,
+      public_id: `${idArchivo(existe.numero_arete)}_${Date.now()}`,
     });
   }
 

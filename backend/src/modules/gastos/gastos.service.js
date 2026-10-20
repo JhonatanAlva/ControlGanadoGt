@@ -6,7 +6,7 @@
 const repo = require('./gastos.repository');
 const { toPublic } = require('./gastos.model');
 const AppError = require('../../utils/AppError');
-const { query } = require('../../config/db');
+const { verificarFinca, verificarAnimal } = require('../../utils/propiedad');
 
 const listar = async (usuarioId, filtros) => {
     const { rows, total, page, limit } = await repo.findAll(usuarioId, filtros);
@@ -20,23 +20,9 @@ const obtener = async (id, usuarioId) => {
 };
 
 const crear = async (usuarioId, datos) => {
-    // Verificar finca si se envía
-    if (datos.finca_id) {
-        const finca = await query(
-            'SELECT id FROM fincas WHERE id = $1 AND usuario_id = $2',
-            [datos.finca_id, usuarioId]
-        );
-        if (finca.rows.length === 0) throw AppError.notFound('Finca no encontrada.');
-    }
-
-    // Verificar animal si se envía
-    if (datos.animal_id) {
-        const animal = await query(
-            'SELECT id FROM animales WHERE id = $1 AND usuario_id = $2',
-            [datos.animal_id, usuarioId]
-        );
-        if (animal.rows.length === 0) throw AppError.notFound('Animal no encontrado.');
-    }
+    // La finca y el animal (si se envían) deben pertenecer al usuario
+    await verificarFinca(datos.finca_id, usuarioId);
+    await verificarAnimal(datos.animal_id, usuarioId);
 
     const gasto = await repo.create({ ...datos, usuario_id: usuarioId });
     return toPublic(gasto);
@@ -45,6 +31,8 @@ const crear = async (usuarioId, datos) => {
 const actualizar = async (id, usuarioId, datos) => {
     const existe = await repo.findById(id, usuarioId);
     if (!existe) throw AppError.notFound('Movimiento no encontrado.');
+    await verificarFinca(datos.finca_id, usuarioId);
+    await verificarAnimal(datos.animal_id, usuarioId);
 
     const actualizado = await repo.update(id, usuarioId, datos);
     return toPublic(actualizado);

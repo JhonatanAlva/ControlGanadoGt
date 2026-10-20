@@ -10,8 +10,9 @@ services:
       POSTGRES_USER:     ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB:       ${DB_NAME}
+    # Solo accesible desde esta máquina (no desde la red local)
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d
@@ -24,15 +25,18 @@ services:
       retries: 5
 
   # ── pgAdmin ────────────────────────────────────────────────────────────────
+  # No arranca por defecto. Para usarlo: docker compose --profile tools up -d pgadmin
   pgadmin:
-    image: dpage/pgadmin4
+    image: dpage/pgadmin4:8.14
     container_name: controlganado_pgadmin
-    restart: always
+    restart: unless-stopped
+    profiles: ["tools"]
     environment:
       PGADMIN_DEFAULT_EMAIL:    ${PGADMIN_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
     ports:
-      - "5050:80"
+      - "127.0.0.1:5050:80"
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,11 +60,24 @@ services:
       DB_NAME:               ${DB_NAME}
       JWT_SECRET:            ${JWT_SECRET}
       JWT_EXPIRES_IN:        ${JWT_EXPIRES_IN:-7d}
+      CORS_ORIGIN:           ${CORS_ORIGIN:-}
+      TRUST_PROXY:           ${TRUST_PROXY:-0}
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
       CLOUDINARY_API_KEY:    ${CLOUDINARY_API_KEY}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      MAIL_HOST:             ${MAIL_HOST:-}
+      MAIL_PORT:             ${MAIL_PORT:-587}
+      MAIL_SECURE:           ${MAIL_SECURE:-false}
+      MAIL_USER:             ${MAIL_USER:-}
+      MAIL_PASS:             ${MAIL_PASS:-}
+      MAIL_FROM:             ${MAIL_FROM:-}
+    # Para probar desde un celular físico en tu red, cambia a "3000:3000"
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     depends_on:
       postgres:
         condition: service_healthy

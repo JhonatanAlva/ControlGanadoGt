@@ -16,7 +16,8 @@ const validate = (schema, source = 'body') => (req, res, next) => {
   const result = schema.safeParse(data);
 
   if (!result.success) {
-    const errors = result.error.errors.map((e) => ({
+    // Zod 4 expone los errores en .issues (.errors ya no existe)
+    const errors = result.error.issues.map((e) => ({
       field:   e.path.join('.'),
       message: e.message,
     }));

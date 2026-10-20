@@ -23,19 +23,14 @@ const {
     filtrosPostSchema,
 } = require('./comunidad.schema');
 
-// Auth opcional — adjunta req.user si hay token, pero no bloquea
-const authOpcional = async (req, res, next) => {
-    try {
-        const authHeader = req.headers.authorization;
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            const { verifyToken } = require('../../config/jwt');
-            const decoded = verifyToken(authHeader.split(' ')[1]);
-            req.user = decoded;
-        }
-    } catch {
-        // Token inválido — se ignora
-    }
-    next();
+// Auth opcional — misma verificación que auth (firma, usuario activo, sesión vigente),
+// pero si el token falta o es inválido se continúa como anónimo
+const authOpcional = (req, res, next) => {
+    if (!req.headers.authorization) return next();
+    auth(req, res, (err) => {
+        if (err) req.user = undefined;
+        next();
+    });
 };
 
 const router = Router();

@@ -16,6 +16,7 @@ const pool = new Pool({
   user:               env.db.user,
   password:           env.db.password,
   database:           env.db.name,
+  ssl:                env.db.ssl ? { rejectUnauthorized: true } : false,
   max:                10,           // máximo de conexiones simultáneas
   idleTimeoutMillis:  30_000,       // cierra conexiones inactivas tras 30s
   connectionTimeoutMillis: 5_000,   // error si no conecta en 5s

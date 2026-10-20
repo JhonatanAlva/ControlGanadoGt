@@ -3,6 +3,10 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { API_URL } from '../constants/colors';
 
+// authStore registra aquí su logout; así api.js no importa el store (evita import circular)
+let alExpirarSesion = null;
+export const registrarAlExpirarSesion = (fn) => { alExpirarSesion = fn; };
+
 const api = axios.create({
   baseURL: API_URL,
   timeout: 10000,
@@ -23,8 +27,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      await SecureStore.deleteItemAsync('auth_token');
+    // Token inválido, expirado o revocado (p. ej. cambio de contraseña en otro dispositivo):
+    // se cierra la sesión completa para que la app regrese al login.
+    // Un 401 sin token (login con contraseña incorrecta) no es una sesión vencida.
+    const teniaToken = Boolean(error.config?.headers?.Authorization);
+    if (error.response?.status === 401 && teniaToken) {
+      await alExpirarSesion?.();
     }
     const mensaje = error.response?.data?.message || 'Error de conexión';
     return Promise.reject({ ...error, mensaje });

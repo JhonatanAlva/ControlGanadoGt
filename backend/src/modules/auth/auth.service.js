@@ -4,12 +4,19 @@
 "use strict";
 
 const bcrypt = require("bcryptjs");
-const { signToken } = require("../../config/jwt");
+const { signToken, huellaPassword } = require("../../config/jwt");
 const AppError = require("../../utils/AppError");
 const repo = require("./auth.repository");
 const { toPublic } = require("./auth.model");
 
 const SALT_ROUNDS = 12;
+
+// Hash de relleno: si el email no existe igual se ejecuta bcrypt, así el tiempo
+// de respuesta no revela qué correos están registrados.
+const HASH_RELLENO = bcrypt.hashSync("relleno-no-es-una-cuenta", SALT_ROUNDS);
+
+const emitirToken = (usuario) =>
+  signToken({ id: usuario.id, pv: huellaPassword(usuario.password_hash) });
 
 const registro = async (datos) => {
   // Verificar email único
@@ -18,34 +25,25 @@ const registro = async (datos) => {
 
   const passwordHash = await bcrypt.hash(datos.password, SALT_ROUNDS);
   const usuarioRaw = await repo.create({ ...datos, passwordHash });
-  const token = signToken({
-    id: usuarioRaw.id,
-    email: usuarioRaw.email,
-    plan: usuarioRaw.plan,
-  });
+  const token = emitirToken({ id: usuarioRaw.id, password_hash: passwordHash });
 
   return { usuario: toPublic(usuarioRaw), token };
 };
 
 const login = async ({ email, password }) => {
   const usuarioRaw = await repo.findByEmail(email);
-  if (!usuarioRaw)
-    throw AppError.unauthorized("Email o contraseña incorrectos.");
-  if (!usuarioRaw.activo)
-    throw AppError.unauthorized("Tu cuenta ha sido desactivada.");
 
   const passwordValida = await bcrypt.compare(
     password,
-    usuarioRaw.password_hash,
+    usuarioRaw?.password_hash || HASH_RELLENO,
   );
-  if (!passwordValida)
+  if (!usuarioRaw || !passwordValida)
     throw AppError.unauthorized("Email o contraseña incorrectos.");
+  // Solo se informa la desactivación a quien demostró conocer la contraseña
+  if (!usuarioRaw.activo)
+    throw AppError.unauthorized("Tu cuenta ha sido desactivada.");
 
-  const token = signToken({
-    id: usuarioRaw.id,
-    email: usuarioRaw.email,
-    plan: usuarioRaw.plan,
-  });
+  const token = emitirToken(usuarioRaw);
 
   return { usuario: toPublic(usuarioRaw), token };
 };
@@ -75,6 +73,9 @@ const cambiarPassword = async (id, { passwordActual, passwordNueva }) => {
 
   const nuevoHash = await bcrypt.hash(passwordNueva, SALT_ROUNDS);
   await repo.updatePassword(id, nuevoHash);
+
+  // Los tokens anteriores quedan invalidados; se entrega uno nuevo a este dispositivo
+  return { token: emitirToken({ id, password_hash: nuevoHash }) };
 };
 
 module.exports = {

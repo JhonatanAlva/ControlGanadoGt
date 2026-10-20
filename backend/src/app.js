@@ -20,12 +20,21 @@ const errorMiddleware = require("./middlewares/error.middleware");
 
 const app = express();
 
+// Detrás de un proxy (Nginx, Railway...) para que el rate limit use la IP real
+if (env.trustProxy > 0) app.set("trust proxy", env.trustProxy);
+
 // ── Seguridad ────────────────────────────────────────────────────────────────
 app.use(helmet());
 
+// La app móvil no envía cabecera Origin, así que CORS solo afecta a navegadores.
+// En producción solo se aceptan los orígenes listados en CORS_ORIGIN (separados por coma).
 app.use(
   cors({
-    origin: env.isDev ? "*" : process.env.CORS_ORIGIN || "*",
+    origin: env.isDev
+      ? "*"
+      : env.corsOrigin
+        ? env.corsOrigin.split(",").map((o) => o.trim())
+        : false,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
@@ -56,8 +65,9 @@ const authLimiter = rateLimit({
 });
 
 // ── Parsers ───────────────────────────────────────────────────────────────────
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// Las fotos llegan por multipart (multer, máx. 5 MB); el JSON nunca necesita más de 100 KB
+app.use(express.json({ limit: "100kb" }));
+app.use(express.urlencoded({ extended: false, limit: "100kb" }));
 app.use(compression());
 
 // ── Logs de requests ─────────────────────────────────────────────────────────
@@ -77,7 +87,6 @@ app.get("/health", (req, res) => {
   res.json({
     success: true,
     message: "GanaderíaGT API corriendo",
-    env: env.NODE_ENV,
     time: new Date().toISOString(),
   });
 });

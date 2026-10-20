@@ -27,6 +27,17 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
+// Un secreto corto permite falsificar tokens por fuerza bruta
+if (process.env.JWT_SECRET.length < 32) {
+  console.error('\n  JWT_SECRET debe tener al menos 32 caracteres.');
+  console.error(`   Genera uno con: node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"\n`);
+  process.exit(1);
+}
+
+if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGIN) {
+  console.warn('\n  CORS_ORIGIN no está definido: se bloquearán peticiones desde navegadores.\n');
+}
+
 const env = {
   // Servidor
   NODE_ENV:    process.env.NODE_ENV || 'development',
@@ -41,7 +52,14 @@ const env = {
     user:     process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     name:     process.env.DB_NAME,
+    // Activar en producción si la base de datos está en otro servidor
+    ssl:      process.env.DB_SSL === 'true',
   },
+
+  // Seguridad
+  corsOrigin: process.env.CORS_ORIGIN || '',
+  // Número de proxies delante del API (Nginx, Railway, etc.) para que el rate limit vea la IP real
+  trustProxy: parseInt(process.env.TRUST_PROXY, 10) || 0,
 
   // JWT
   jwt: {

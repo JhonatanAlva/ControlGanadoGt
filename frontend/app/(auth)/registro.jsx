@@ -9,6 +9,7 @@ import { Link } from 'expo-router';
 import useAuthStore from '../../stores/authStore';
 import { COLORS } from '../../constants/colors';
 import { REGIONES_GUATEMALA as REGIONES } from '../../constants/enums';
+import { validarPassword } from '../../utils/password';
 
 export default function RegistroScreen() {
   const [form, setForm] = useState({
@@ -24,15 +25,16 @@ export default function RegistroScreen() {
       Alert.alert('Campos requeridos', 'Nombre, email y contraseña son obligatorios.');
       return;
     }
-    if (form.password.length < 6) {
-      Alert.alert('Contraseña corta', 'Mínimo 6 caracteres.');
+    const errorPassword = validarPassword(form.password);
+    if (errorPassword) {
+      Alert.alert('Contraseña insegura', errorPassword);
       return;
     }
     setLoading(true);
     limpiarError();
     const ok = await registro(form);
     setLoading(false);
-    if (!ok) Alert.alert('Error', error || 'No se pudo crear la cuenta.');
+    if (!ok) Alert.alert('Error', useAuthStore.getState().error || 'No se pudo crear la cuenta.');
   };
 
   return (

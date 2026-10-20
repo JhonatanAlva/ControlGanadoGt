@@ -6,7 +6,7 @@
 
 "use strict";
 
-const { verifyToken } = require("../config/jwt");
+const { verifyToken, huellaPassword } = require("../config/jwt");
 const AppError = require("../utils/AppError");
 const { query } = require("../config/db");
 
@@ -25,7 +25,7 @@ const authMiddleware = async (req, res, next) => {
 
     // 3. Confirmar que el usuario aún existe en la DB
     const result = await query(
-      "SELECT id, nombre, email, plan, activo FROM usuarios WHERE id = $1",
+      "SELECT id, nombre, email, plan, activo, password_hash FROM usuarios WHERE id = $1",
       [decoded.id],
     );
 
@@ -33,10 +33,15 @@ const authMiddleware = async (req, res, next) => {
       throw AppError.unauthorized("El usuario ya no existe.");
     }
 
-    const usuario = result.rows[0];
+    const { password_hash, ...usuario } = result.rows[0];
 
     if (!usuario.activo) {
       throw AppError.unauthorized("Tu cuenta ha sido desactivada.");
+    }
+
+    // Token emitido antes del último cambio de contraseña
+    if (decoded.pv !== huellaPassword(password_hash)) {
+      throw AppError.unauthorized("Tu sesión ya no es válida. Inicia sesión nuevamente.");
     }
 
     // 4. Adjuntar usuario al request
