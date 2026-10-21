@@ -184,7 +184,7 @@ export const crearRepoOffline = ({
     },
     async () => {
       const id = nuevoIdLocal();
-      const fotoGuardada = guardarFotoPendiente(foto);
+      const fotoGuardada = await guardarFotoPendiente(foto);
       const item = {
         id, ...datos, ...(fotoGuardada && { foto_url: fotoGuardada.uri }), creado_en: ahora(), actualizado_en: ahora(),
       };
@@ -204,7 +204,7 @@ export const crearRepoOffline = ({
     },
     async () => {
       const fila = await leerFila(id);
-      const fotoGuardada = guardarFotoPendiente(foto);
+      const fotoGuardada = await guardarFotoPendiente(foto);
       const item = {
         ...(fila ? JSON.parse(fila.datos) : { id }), ...datos,
         ...(fotoGuardada && { foto_url: fotoGuardada.uri }), actualizado_en: ahora(),

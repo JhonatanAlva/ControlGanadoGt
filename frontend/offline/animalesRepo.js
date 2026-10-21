@@ -112,7 +112,7 @@ export const crear = async (datos, foto) => {
   }
 
   const idLocal = `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const fotoGuardada = guardarFotoPendiente(foto);
+  const fotoGuardada = await guardarFotoPendiente(foto);
   const animalLocal = {
     id: idLocal,
     ...datos,
@@ -138,7 +138,7 @@ export const actualizar = async (id, datos, foto) => {
   const db = await getDb();
   const row = await db.getFirstAsync('SELECT datos FROM animales WHERE id = ?', [id]);
   const actual = row ? JSON.parse(row.datos) : { id };
-  const fotoGuardada = guardarFotoPendiente(foto);
+  const fotoGuardada = await guardarFotoPendiente(foto);
   const actualizado = {
     ...actual, ...datos, ...(fotoGuardada && { foto_url: fotoGuardada.uri }), actualizado_en: new Date().toISOString(),
   };

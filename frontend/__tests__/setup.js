@@ -60,7 +60,8 @@ jest.mock('expo-file-system', () => {
   class File {
     constructor(base, nombre) { this.uri = nombre ? unir(base.uri ?? base, nombre) : String(base); }
     get exists() { return global.archivos.has(this.uri); }
-    copy(destino) {
+    async copy(destino) {
+      await new Promise((r) => setTimeout(r, 5));
       if (!this.exists) throw new Error(`No existe ${this.uri}`);
       global.archivos.add(destino.uri);
     }

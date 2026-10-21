@@ -13,14 +13,14 @@ const carpeta = () => {
 /**
  * Copia la foto a almacenamiento permanente.
  * @param {{ uri: string, fileName?: string, mimeType?: string }} foto
- * @returns {object} misma foto apuntando a la copia permanente
+ * @returns {Promise<object>} misma foto apuntando a la copia permanente
  */
-export const guardarFotoPendiente = (foto) => {
+export const guardarFotoPendiente = async (foto) => {
   if (!foto?.uri) return foto;
   const extension = (foto.fileName?.split('.').pop() || 'jpg').toLowerCase();
   const nombre = `foto_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extension}`;
   const destino = new File(carpeta(), nombre);
-  new File(foto.uri).copy(destino);
+  await new File(foto.uri).copy(destino); // asíncrono desde expo-file-system 57
   return { uri: destino.uri, fileName: nombre, mimeType: foto.mimeType || 'image/jpeg' };
 };
 

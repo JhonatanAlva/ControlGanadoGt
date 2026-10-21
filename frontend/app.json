@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#2d7a3a"
-    },
     "scheme": "ganaderiagt",
     "ios": {
       "supportsTablet": true,
@@ -39,7 +34,18 @@
       ],
       [
         "expo-sqlite",
-        { "useSQLCipher": true }
+        {
+          "useSQLCipher": true
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#2d7a3a",
+          "imageWidth": 200
+        }
       ]
     ],
     "experiments": {
